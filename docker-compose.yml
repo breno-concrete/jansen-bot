@@ -1,0 +1,82 @@
+services:
+  # Evolution API — integração com WhatsApp
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: evolution-api
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      - SERVER_URL=${EVOLUTION_SERVER_URL:-http://localhost:8081}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-sua-chave-evolution}
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution@postgres:5432/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - CONFIG_SESSION_PHONE_CLIENT=Jansen Bot
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jansen-network
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  # PostgreSQL para Evolution API (não confundir com Google Sheets do bot)
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolution-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=evolution
+      - POSTGRES_PASSWORD=evolution
+      - POSTGRES_DB=evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jansen-network
+
+  # Spring Boot — Jansen Bot
+  jansen-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jansen-bot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-sua-chave-evolution}
+      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME:-jansen-banda}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-haiku-4-5-20251001}
+      - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
+      - GOOGLE_CREDENTIALS_PATH=/app/credentials/google-credentials.json
+      - BANDA_NOME=${BANDA_NOME:-Minha Banda}
+      - BANDA_ADMIN_PHONES=${BANDA_ADMIN_PHONES}
+      - REMINDER_CRON=0 0 9 * * *
+      - REMINDER_TIMEZONE=America/Sao_Paulo
+    volumes:
+      - ./credentials:/app/credentials:ro
+    depends_on:
+      - evolution-api
+    networks:
+      - jansen-network
+
+networks:
+  jansen-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  evolution_instances:
