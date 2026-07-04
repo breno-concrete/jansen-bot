@@ -38,9 +38,7 @@ public class BroadcastService {
 
         String formatted = "📢 *Aviso da banda:*\n\n" + message;
 
-        for (Member member : members) {
-            evolutionClient.sendTextMessage(member.telefone(), formatted);
-        }
+        evolutionClient.sendTextMessageSeries(members, formatted);
         log.info("Broadcast enviado para {} membros", members.size());
     }
 

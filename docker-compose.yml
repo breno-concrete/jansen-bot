@@ -14,6 +14,8 @@ services:
       - DATABASE_CONNECTION_URI=postgresql://evolution:evolution@postgres:5432/evolution
       - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://:evolution@redis:6379/0
       - WEBHOOK_GLOBAL_ENABLED=false
       - CONFIG_SESSION_PHONE_CLIENT=Jansen Bot
       - CONFIG_SESSION_PHONE_NAME=Chrome
@@ -44,6 +46,17 @@ services:
     networks:
       - jansen-network
 
+  # Redis para o cache e sessões do Evolution API (Essencial para não bugar o QR Code)
+  redis:
+    image: redis:7-alpine
+    container_name: evolution-redis
+    restart: unless-stopped
+    command: redis-server --requirepass evolution
+    volumes:
+      - redis_data:/data
+    networks:
+      - jansen-network
+
   # Spring Boot — Jansen Bot
   jansen-bot:
     build:
@@ -58,8 +71,8 @@ services:
       - EVOLUTION_API_URL=http://evolution-api:8080
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-sua-chave-evolution}
       - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME:-jansen-banda}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
-      - CLAUDE_MODEL=${CLAUDE_MODEL:-claude-haiku-4-5-20251001}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-llama-3.3-70b-versatile}
       - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
       - GOOGLE_CREDENTIALS_PATH=/app/credentials/google-credentials.json
       - BANDA_NOME=${BANDA_NOME:-Minha Banda}
@@ -80,3 +93,4 @@ networks:
 volumes:
   postgres_data:
   evolution_instances:
+  redis_data:

@@ -57,7 +57,9 @@ public class MonthlyReportService {
         String podium = buildPresencePodium(mes, ano);
 
         broadcastReport(punctuality);
+        evolutionClient.sleepDelay(15000);
         broadcastReport(presence);
+        evolutionClient.sleepDelay(15000);
         broadcastReport(podium);
 
         saveReport(mes, ano, Map.of(
@@ -70,9 +72,10 @@ public class MonthlyReportService {
     }
 
     private void broadcastReport(String message) {
-        repository.findAllMembers().stream()
+        List<Member> members = repository.findAllMembers().stream()
                 .filter(Member::ativo)
-                .forEach(m -> evolutionClient.sendTextMessage(m.telefone(), message));
+                .collect(Collectors.toList());
+        evolutionClient.sendTextMessageSeries(members, message);
     }
 
     /**

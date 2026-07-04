@@ -1,6 +1,7 @@
 package com.jansen.bot.service;
 
 import com.jansen.bot.client.EvolutionClient;
+import com.jansen.bot.config.AppProperties;
 import com.jansen.bot.model.Member;
 import com.jansen.bot.model.Rehearsal;
 import com.jansen.bot.model.ResponseRecord;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -23,27 +25,30 @@ public class RehearsalService {
 
     private final GoogleSheetsRepository repository;
     private final EvolutionClient evolutionClient;
+    private final AppProperties properties;
 
-    public RehearsalService(GoogleSheetsRepository repository, EvolutionClient evolutionClient) {
+    public RehearsalService(GoogleSheetsRepository repository, EvolutionClient evolutionClient,
+                            AppProperties properties) {
         this.repository = repository;
         this.evolutionClient = evolutionClient;
+        this.properties = properties;
     }
 
     /**
-     * Cria ensaio em votação com opções de datas propostas.
+     * Cria ensaio agendado pelo líder. Membros confirmam presença com SIM/NÃO.
      */
-    public Rehearsal createVotingRehearsal(String opcoesDatas, String local) {
+    public Rehearsal createScheduledRehearsal(String dataHora, String local) {
         Rehearsal rehearsal = new Rehearsal(
                 PhoneUtils.generateId(),
-                "",
+                dataHora != null ? dataHora : "",
                 local != null ? local : "A definir",
-                "VOTACAO",
-                opcoesDatas,
+                "AGENDADO",
+                "",
                 "",
                 false
         );
         repository.saveRehearsal(rehearsal);
-        log.info("Ensaio em votação criado: {}", rehearsal.id());
+        log.info("Ensaio agendado criado: {} - {} em {}", rehearsal.id(), dataHora, local);
         return rehearsal;
     }
 
@@ -64,6 +69,7 @@ public class RehearsalService {
 
     /**
      * Confirma ou nega presença no ensaio agendado.
+     * Após registrar, verifica se todos já responderam e notifica o admin.
      */
     public void registerPresence(String rehearsalId, String memberPhone, boolean confirmado) {
         ResponseRecord record = new ResponseRecord(
@@ -75,6 +81,41 @@ public class RehearsalService {
                 PhoneUtils.nowFormatted()
         );
         repository.saveResponse(record);
+
+        // Verifica se todos os membros ativos já responderam
+        checkAllResponded(rehearsalId);
+    }
+
+    /**
+     * Verifica se todos os membros ativos já confirmaram/negaram presença.
+     * Se sim, envia resumo automático para o admin.
+     */
+    private void checkAllResponded(String rehearsalId) {
+        // Exclui projeção — eles nunca recebem mensagem de ensaio
+        List<Member> eligibleMembers = repository.findAllMembers().stream()
+                .filter(Member::ativo)
+                .filter(m -> {
+                    String instr = m.instrumento().toLowerCase();
+                    return !instr.contains("proje") && !instr.contains("projeção") && !instr.contains("projecao");
+                })
+                .collect(Collectors.toList());
+
+        Set<String> respondedPhones = repository.findResponsesByRehearsal(rehearsalId).stream()
+                .filter(r -> "CONFIRMACAO".equals(r.tipo()))
+                .map(r -> PhoneUtils.normalize(r.memberPhone()))
+                .collect(Collectors.toSet());
+
+        long totalEligible = eligibleMembers.size();
+        long totalResponded = eligibleMembers.stream()
+                .filter(m -> respondedPhones.contains(PhoneUtils.normalize(m.telefone())))
+                .count();
+
+        if (totalResponded >= totalEligible && totalEligible > 0) {
+            log.info("Todos os {} membros responderam sobre o ensaio {}", totalEligible, rehearsalId);
+            String summary = buildPresenceSummary(rehearsalId);
+            String adminMessage = "✅ *Todos responderam!*\n\n" + summary;
+            evolutionClient.sendTextMessage(properties.getPrimaryAdminPhone(), adminMessage);
+        }
     }
 
     /**
@@ -136,9 +177,7 @@ public class RehearsalService {
                 rehearsal.dataHora(), rehearsal.local()
         );
 
-        for (Member member : members) {
-            evolutionClient.sendTextMessage(member.telefone(), message);
-        }
+        evolutionClient.sendTextMessageSeries(members, message);
 
         Rehearsal updated = new Rehearsal(
                 rehearsal.id(), rehearsal.dataHora(), rehearsal.local(),

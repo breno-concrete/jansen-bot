@@ -51,14 +51,14 @@ public class AppProperties {
     @Value("${banda.admin-phones}")
     private String adminPhones;
 
-    @Value("${claude.api.key}")
-    private String claudeApiKey;
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
 
-    @Value("${claude.api.model}")
-    private String claudeModel;
+    @Value("${gemini.api.model}")
+    private String geminiModel;
 
-    @Value("${claude.api.max-tokens}")
-    private int claudeMaxTokens;
+    @Value("${gemini.api.max-tokens}")
+    private int geminiMaxTokens;
 
     public String getEvolutionInstance() { return evolutionInstance; }
     public String getSpreadsheetId() { return spreadsheetId; }
@@ -74,9 +74,9 @@ public class AppProperties {
     public String getTabMonthlyReport() { return tabMonthlyReport; }
     public String getBandaNome() { return bandaNome; }
     public String getAdminPhones() { return adminPhones; }
-    public String getClaudeApiKey() { return claudeApiKey; }
-    public String getClaudeModel() { return claudeModel; }
-    public int getClaudeMaxTokens() { return claudeMaxTokens; }
+    public String getGeminiApiKey() { return geminiApiKey; }
+    public String getGeminiModel() { return geminiModel; }
+    public int getGeminiMaxTokens() { return geminiMaxTokens; }
 
     /** Retorna o primeiro telefone admin (para alertas privados). */
     public String getPrimaryAdminPhone() {

@@ -8,21 +8,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
- * Orquestra o fluxo completo: webhook → Claude → ação → resposta WhatsApp.
+ * Orquestra o fluxo completo: webhook → Gemini → ação → resposta WhatsApp.
  */
 @Service
 public class WebhookService {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
 
-    private final ClaudeService claudeService;
+    private final GeminiService geminiService;
     private final ActionDispatcher actionDispatcher;
     private final EvolutionClient evolutionClient;
 
-    public WebhookService(ClaudeService claudeService,
+    public WebhookService(GeminiService geminiService,
                           ActionDispatcher actionDispatcher,
                           EvolutionClient evolutionClient) {
-        this.claudeService = claudeService;
+        this.geminiService = geminiService;
         this.actionDispatcher = actionDispatcher;
         this.evolutionClient = evolutionClient;
     }
@@ -42,13 +42,13 @@ public class WebhookService {
 
         log.info("Mensagem recebida de {} ({}): {}", senderName, phone, message);
 
-        // 1. Envia para Claude interpretar
-        ClaudeAction action = claudeService.interpret(phone, message);
+        // 1. Envia para Gemini interpretar
+        ClaudeAction action = geminiService.interpret(phone, message);
 
         // 2. Executa a ação e obtém resposta
         String response = actionDispatcher.dispatch(phone, action);
 
-        // 3. Usa resposta da Claude se o dispatcher não gerou uma específica
+        // 3. Usa resposta da Gemini se o dispatcher não gerou uma específica
         if (response == null || response.isBlank()) {
             response = action.resposta();
         }

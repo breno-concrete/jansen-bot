@@ -474,7 +474,7 @@ public class GoogleSheetsRepository {
                     .execute();
             return response.getValues() != null ? response.getValues() : Collections.emptyList();
         } catch (IOException e) {
-            log.error("Erro ao ler planilha {}: {}", range, e.getMessage());
+            log.error("Erro ao ler planilha {}: {}", range, e.getMessage(), e);
             return Collections.emptyList();
         }
     }
@@ -487,7 +487,7 @@ public class GoogleSheetsRepository {
                     .setValueInputOption("USER_ENTERED")
                     .execute();
         } catch (IOException e) {
-            log.error("Erro ao inserir linha em {}: {}", tab, e.getMessage());
+            log.error("Erro ao inserir linha em {}: {}", tab, e.getMessage(), e);
         }
     }
 

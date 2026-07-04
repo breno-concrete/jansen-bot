@@ -30,7 +30,7 @@ public class WebhookController {
         log.debug("Webhook recebido: event={}", payload.event());
 
         // Processa de forma assíncrona para responder rápido ao webhook
-        new Thread(() -> webhookService.processWebhook(payload)).start();
+        java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor().submit(() -> webhookService.processWebhook(payload));
 
         return ResponseEntity.ok().build();
     }

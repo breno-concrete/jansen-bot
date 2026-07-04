@@ -14,14 +14,18 @@ public final class PhoneUtils {
 
     private PhoneUtils() {}
 
-    /**
-     * Normaliza número de telefone removendo caracteres não numéricos.
-     */
     public static String normalize(String phone) {
         if (phone == null) {
             return "";
         }
-        return phone.replaceAll("[^0-9]", "");
+        String digits = phone.replaceAll("[^0-9]", "");
+        if (digits.startsWith("55") && digits.length() >= 12) {
+            digits = digits.substring(2);
+        }
+        if (digits.length() == 11 && digits.charAt(2) == '9') {
+            digits = digits.substring(0, 2) + digits.substring(3);
+        }
+        return digits;
     }
 
     /**

@@ -10,7 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Interpreta a ação retornada pela Claude e executa a operação correspondente.
@@ -114,15 +116,50 @@ public class ActionDispatcher {
             return "Só admin pode agendar ensaio, beleza? 😅";
         }
         ClaudeAction.ActionData dados = action.dados();
-        String opcoes = dados != null ? dados.opcoesDatas() : "";
+        String dataHora = dados != null ? dados.opcoesDatas() : "";
         String local = dados != null ? dados.local() : "A definir";
-        Rehearsal rehearsal = rehearsalService.createVotingRehearsal(opcoes, local);
-        String voteMessage = action.resposta() + "\n\nResponde com o número da opção que prefere!";
-        repository.findAllMembers().stream()
+        Rehearsal rehearsal = rehearsalService.createScheduledRehearsal(dataHora, local);
+
+        String presenceMessage = "🎸 *Ensaio marcado!*\n\n" +
+                action.resposta() +
+                "\n\n👉 *Você vai estar presente?*\n" +
+                "Responde *SIM* ou *NÃO*!";
+
+        // Detecta tipo de ensaio pela resposta da IA
+        String respLower = action.resposta().toLowerCase();
+        List<Member> recipients = repository.findAllMembers().stream()
                 .filter(Member::ativo)
-                .forEach(m -> evolutionClient.sendTextMessage(m.telefone(), voteMessage));
-        updateConversationState(memberPhone, ConversationStates.VOTACAO, rehearsal.id());
-        return "Pronto! Mandei as opções pro pessoal votar 🗳️";
+                .filter(m -> !isProjecao(m)) // projeção nunca recebe msg de ensaio
+                .filter(m -> filterByRehearsalType(m, respLower))
+                .collect(Collectors.toList());
+
+        evolutionClient.sendTextMessageSeries(recipients, presenceMessage);
+
+        String tipoLog = respLower.contains("voz") ? "vozes" : respLower.contains("instrumental") ? "instrumental" : "geral";
+        return "Pronto! Mandei pro pessoal do ensaio de " + tipoLog + " confirmar presença ✅ (" + recipients.size() + " membros)";
+    }
+
+    /**
+     * Filtra membros por tipo de ensaio:
+     * - "vozes" → só quem tem VOCAL no instrumento
+     * - "instrumental" → só quem tem instrumento (não vocal, não projeção)
+     * - "geral" (default) → todos (exceto projeção, já filtrado antes)
+     */
+    private boolean filterByRehearsalType(Member member, String respLower) {
+        String instr = member.instrumento().toLowerCase();
+        if (respLower.contains("voz") || respLower.contains("vocal")) {
+            return instr.contains("vocal") || instr.contains("voz");
+        }
+        if (respLower.contains("instrumental")) {
+            return !instr.contains("vocal") && !instr.contains("voz");
+        }
+        // Geral: todos (projeção já foi filtrado antes)
+        return true;
+    }
+
+    private boolean isProjecao(Member member) {
+        String instr = member.instrumento().toLowerCase();
+        return instr.contains("proje") || instr.contains("projeção") || instr.contains("projecao");
     }
 
     private String handleShowRegistration(String memberPhone, ClaudeAction.ActionData dados) {

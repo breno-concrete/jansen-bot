@@ -14,7 +14,7 @@ target/
 
 .env
 credentials/
-google-credentials.json
+src/main/resources/google-credentials.json
 *.pem
 
 .DS_Store

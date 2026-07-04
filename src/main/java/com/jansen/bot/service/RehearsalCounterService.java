@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Contador de ensaios realizados pela banda.
@@ -65,9 +67,10 @@ public class RehearsalCounterService {
                 count
         );
 
-        repository.findAllMembers().stream()
+        List<Member> activeMembers = repository.findAllMembers().stream()
                 .filter(Member::ativo)
-                .forEach(m -> evolutionClient.sendTextMessage(m.telefone(), message));
+                .collect(Collectors.toList());
+        evolutionClient.sendTextMessageSeries(activeMembers, message);
 
         log.info("Ensaio {} marcado como REALIZADO. Total: {}", r.id(), count);
         return "Ensaio concluído! Anunciei pro grupo — total: " + count + " ensaios 🎸";

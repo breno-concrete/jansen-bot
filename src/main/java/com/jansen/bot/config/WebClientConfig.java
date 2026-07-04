@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Configuração dos WebClients para Evolution API e Claude API.
+ * Configuração dos WebClients para Evolution API e Gemini API.
  */
 @Configuration
 public class WebClientConfig {
@@ -29,11 +29,10 @@ public class WebClientConfig {
     }
 
     @Bean
-    public WebClient claudeWebClient() {
+    public WebClient geminiWebClient() {
         return WebClient.builder()
-                .baseUrl("https://api.anthropic.com")
+                .baseUrl("https://api.groq.com/openai")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .defaultHeader("anthropic-version", "2023-06-01")
                 .build();
     }
 }

@@ -62,13 +62,17 @@ public class MemberOfMonthService {
         String voteMessage = "🌟 *Votação — Membro do mês*\n\n" +
                 "Vote respondendo com o *número* do membro:\n\n" + list;
 
-        for (Member member : members) {
+        for (int i = 0; i < members.size(); i++) {
+            Member member = members.get(i);
             evolutionClient.sendTextMessage(member.telefone(), voteMessage);
             repository.saveConversationState(new ConversationState(
                     member.telefone(), ConversationStates.VOTACAO_MEMBRO_MES,
                     String.format("{\"mes\":%d,\"ano\":%d}", mes, ano),
                     PhoneUtils.nowFormatted()
             ));
+            if (i < members.size() - 1) {
+                evolutionClient.sleepDelay(15000);
+            }
         }
 
         log.info("Votação membro do mês aberta para {}/{}", mes, ano);
@@ -154,9 +158,10 @@ public class MemberOfMonthService {
                 monthName, maxVotes, winnerName
         );
 
-        repository.findAllMembers().stream()
+        List<Member> activeMembers = repository.findAllMembers().stream()
                 .filter(Member::ativo)
-                .forEach(m -> evolutionClient.sendTextMessage(m.telefone(), announcement));
+                .collect(Collectors.toList());
+        evolutionClient.sendTextMessageSeries(activeMembers, announcement);
 
         // Limpa estados de votação
         repository.clearConversationState(adminPhone);

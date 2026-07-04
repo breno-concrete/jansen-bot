@@ -103,9 +103,10 @@ public class ShowService {
             }
 
             String message = buildReminderMessage(show, tipo);
-            repository.findAllMembers().stream()
+            List<Member> activeMembers = repository.findAllMembers().stream()
                     .filter(Member::ativo)
-                    .forEach(m -> evolutionClient.sendTextMessage(m.telefone(), message));
+                    .collect(Collectors.toList());
+            evolutionClient.sendTextMessageSeries(activeMembers, message);
 
             repository.saveShowReminder(new ShowReminder(
                     PhoneUtils.generateId(), show.id(), tipo, true, PhoneUtils.nowFormatted()
