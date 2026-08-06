@@ -5,6 +5,7 @@ import com.jansen.bot.config.AppProperties;
 import com.jansen.bot.model.*;
 import com.jansen.bot.repository.GoogleSheetsRepository;
 import com.jansen.bot.util.PhoneUtils;
+import com.jansen.bot.util.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -41,8 +42,8 @@ public class MemberOfMonthService {
             return "Já tem uma votação aberta! Encerra a atual primeiro 😅";
         }
 
-        int mes = LocalDate.now().getMonthValue();
-        int ano = LocalDate.now().getYear();
+        int mes = DateUtils.todayBrazil().getMonthValue();
+        int ano = DateUtils.todayBrazil().getYear();
 
         repository.saveConversationState(new ConversationState(
                 adminPhone, ConversationStates.VOTACAO_MEMBRO_ABERTA,
@@ -87,8 +88,8 @@ public class MemberOfMonthService {
             return "Não tem votação aberta agora 🤷";
         }
 
-        int mes = LocalDate.now().getMonthValue();
-        int ano = LocalDate.now().getYear();
+        int mes = DateUtils.todayBrazil().getMonthValue();
+        int ano = DateUtils.todayBrazil().getYear();
 
         if (repository.hasVotedInMonth(voterPhone, mes, ano)) {
             return "Você já votou nesta votação! 🙂";
@@ -118,8 +119,8 @@ public class MemberOfMonthService {
             return "Não tem votação aberta 🤷";
         }
 
-        int mes = LocalDate.now().getMonthValue();
-        int ano = LocalDate.now().getYear();
+        int mes = DateUtils.todayBrazil().getMonthValue();
+        int ano = DateUtils.todayBrazil().getYear();
         List<MemberOfMonthVote> votes = repository.findVotesByMonth(mes, ano);
 
         if (votes.isEmpty()) {

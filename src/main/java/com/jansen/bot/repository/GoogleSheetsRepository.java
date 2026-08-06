@@ -73,8 +73,14 @@ public class GoogleSheetsRepository {
     }
 
     public Optional<Rehearsal> findNextScheduledRehearsal() {
-        return findAllRehearsals().stream()
-                .filter(r -> "AGENDADO".equalsIgnoreCase(r.status()) || "VOTACAO".equalsIgnoreCase(r.status()))
+        List<Rehearsal> all = findAllRehearsals();
+        // Prioriza AGENDADO sobre VOTACAO para evitar conflitos
+        Optional<Rehearsal> agendado = all.stream()
+                .filter(r -> "AGENDADO".equalsIgnoreCase(r.status()))
+                .findFirst();
+        if (agendado.isPresent()) return agendado;
+        return all.stream()
+                .filter(r -> "VOTACAO".equalsIgnoreCase(r.status()))
                 .findFirst();
     }
 
@@ -484,7 +490,7 @@ public class GoogleSheetsRepository {
             ValueRange body = new ValueRange().setValues(List.of(values));
             sheets.spreadsheets().values()
                     .append(properties.getSpreadsheetId(), tab + "!A1", body)
-                    .setValueInputOption("USER_ENTERED")
+                    .setValueInputOption("RAW")
                     .execute();
         } catch (IOException e) {
             log.error("Erro ao inserir linha em {}: {}", tab, e.getMessage(), e);

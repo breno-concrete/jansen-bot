@@ -3,6 +3,7 @@ package com.jansen.bot.util;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
@@ -19,7 +20,25 @@ public final class DateUtils {
     private static final DateTimeFormatter DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final DateTimeFormatter MONTH_NAME = DateTimeFormatter.ofPattern("MMMM", new Locale("pt", "BR"));
 
+    /** Fuso horário oficial do Brasil (Brasília). */
+    public static final ZoneId ZONE_BR = ZoneId.of("America/Sao_Paulo");
+
     private DateUtils() {}
+
+    /** Retorna a data de HOJE no horário de Brasília (não UTC). */
+    public static LocalDate todayBrazil() {
+        return LocalDate.now(ZONE_BR);
+    }
+
+    /** Retorna a hora AGORA no horário de Brasília (não UTC). */
+    public static LocalTime nowBrazil() {
+        return LocalTime.now(ZONE_BR);
+    }
+
+    /** Retorna data e hora AGORA no horário de Brasília (não UTC). */
+    public static LocalDateTime nowDateTimeBrazil() {
+        return LocalDateTime.now(ZONE_BR);
+    }
 
     public static LocalDate parseDateFlexible(String dateStr) {
         if (dateStr == null || dateStr.isBlank()) {
@@ -29,7 +48,7 @@ public final class DateUtils {
         for (DateTimeFormatter fmt : new DateTimeFormatter[]{DATE_ISO, DATE_BR, DATE_BR_SHORT}) {
             try {
                 if (fmt == DATE_BR_SHORT) {
-                    return LocalDate.parse(trimmed + "/" + LocalDate.now().getYear(), DATE_BR);
+                    return LocalDate.parse(trimmed + "/" + todayBrazil().getYear(), DATE_BR);
                 }
                 return LocalDate.parse(trimmed, fmt);
             } catch (DateTimeParseException ignored) {
@@ -76,7 +95,7 @@ public final class DateUtils {
 
     public static boolean isToday(String dateStr) {
         LocalDate date = parseDateFlexible(dateStr);
-        return date != null && date.equals(LocalDate.now());
+        return date != null && date.equals(todayBrazil());
     }
 
     public static boolean isRehearsalToday(String dataHora) {
@@ -85,7 +104,7 @@ public final class DateUtils {
         }
         try {
             LocalDateTime dt = LocalDateTime.parse(dataHora, DATETIME);
-            return dt.toLocalDate().equals(LocalDate.now());
+            return dt.toLocalDate().equals(todayBrazil());
         } catch (DateTimeParseException e) {
             return isToday(dataHora);
         }
@@ -96,7 +115,7 @@ public final class DateUtils {
         if (date == null) {
             return -1;
         }
-        return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), date);
+        return java.time.temporal.ChronoUnit.DAYS.between(todayBrazil(), date);
     }
 
     public static String extractDatePart(String dataHora) {
@@ -109,3 +128,4 @@ public final class DateUtils {
         return dataHora;
     }
 }
+

@@ -37,7 +37,7 @@ public final class PhoneUtils {
     }
 
     public static String generateId() {
-        return UUID.randomUUID().toString().substring(0, 8);
+        return "j" + UUID.randomUUID().toString().substring(0, 7);
     }
 
     public static String nowFormatted() {
