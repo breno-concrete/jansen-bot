@@ -44,8 +44,31 @@ public class ArrivalService {
         }
 
         Rehearsal rehearsal = todayRehearsal.get();
-        String nowTime = LocalTime.now().format(TIME_FMT);
-        String today = LocalDate.now().toString();
+        LocalTime now = DateUtils.nowBrazil();
+
+        // Extrai horário do ensaio (ex: "23/07/2026 20:00" -> "20:00")
+        LocalTime rehearsalTime = null;
+        try {
+            if (rehearsal.dataHora() != null && rehearsal.dataHora().contains(":")) {
+                String timePart = rehearsal.dataHora().replaceAll(".*(\\d{2}:\\d{2}).*", "$1");
+                rehearsalTime = LocalTime.parse(timePart, TIME_FMT);
+            }
+        } catch (Exception ignored) {}
+
+        if (rehearsalTime != null) {
+            LocalTime windowStart = rehearsalTime.minusHours(1);
+            LocalTime windowEnd = rehearsalTime.plusHours(2);
+            
+            if (now.isBefore(windowStart)) {
+                return String.format("Calma lá, %s! O ensaio é só às %s, você chegou muito cedo! 😂 (Só dá pra registrar 1h antes)", memberName, rehearsalTime.format(TIME_FMT));
+            }
+            if (now.isAfter(windowEnd)) {
+                return String.format("Eita, %s! O ensaio já acabou (ou você chegou muuuito atrasado). 😅 O ensaio era às %s!", memberName, rehearsalTime.format(TIME_FMT));
+            }
+        }
+
+        String nowTime = now.format(TIME_FMT);
+        String today = DateUtils.todayBrazil().toString();
 
         Arrival arrival = new Arrival(
                 PhoneUtils.generateId(),

@@ -32,7 +32,9 @@ public class ContextService {
                 .filter(Member::ativo)
                 .collect(Collectors.toList());
 
-        List<Rehearsal> ensaios = repository.findAllRehearsals();
+        List<Rehearsal> ensaios = repository.findAllRehearsals().stream()
+                .filter(r -> !"REALIZADO".equalsIgnoreCase(r.status()))
+                .collect(Collectors.toList());
         Optional<Rehearsal> proximo = repository.findNextScheduledRehearsal();
 
         List<SetlistSong> setlist = proximo
@@ -48,10 +50,8 @@ public class ContextService {
 
         String resumo = proximo.map(this::formatRehearsalSummary).orElse("Nenhum ensaio agendado");
 
-        List<Show> shows = repository.findAllShows();
-        List<Arrival> chegadas = repository.findAllArrivals().stream()
-                .limit(20)
-                .collect(Collectors.toList());
+        List<Show> shows = List.of();
+        List<Arrival> chegadas = List.of();
         int totalRealizados = (int) repository.countRehearsalsByStatus("REALIZADO");
 
         return new BandContext(
@@ -66,8 +66,8 @@ public class ContextService {
                 chegadas,
                 totalRealizados,
                 repository.isMemberOfMonthVotingOpen(),
-                repository.findApprovedRepertoire(),
-                repository.findPendingSuggestions()
+                List.of(),
+                List.of()
         );
     }
 

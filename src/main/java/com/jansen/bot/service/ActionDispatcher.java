@@ -243,9 +243,15 @@ public class ActionDispatcher {
     }
 
     private void handlePresence(String memberPhone, ClaudeAction.ActionData dados, boolean confirmado) {
-        repository.findNextScheduledRehearsal()
+        var opt = repository.findAllRehearsals().stream()
                 .filter(r -> "AGENDADO".equalsIgnoreCase(r.status()))
-                .ifPresent(r -> rehearsalService.registerPresence(r.id(), memberPhone, confirmado));
+                .findFirst();
+        if (opt.isPresent()) {
+            log.info("Registrando presença: {} -> {} no ensaio {}", memberPhone, confirmado ? "SIM" : "NAO", opt.get().id());
+            rehearsalService.registerPresence(opt.get().id(), memberPhone, confirmado);
+        } else {
+            log.warn("Nenhum ensaio AGENDADO encontrado para registrar presença de {}", memberPhone);
+        }
     }
 
     private String handlePresenceStatus(ClaudeAction.ActionData dados) {
