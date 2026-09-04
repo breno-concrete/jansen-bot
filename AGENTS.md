@@ -6,11 +6,11 @@ Bot de WhatsApp que organiza ensaios, cultos e eventos de uma banda de 8 pessoas
 Stack: Java 21, Spring Boot, Evolution API (integração com WhatsApp), Google Sheets como banco de dados.
 
 ## Specs — leia antes de implementar qualquer regra de negócio
-Toda regra de negócio nova começa em `specs/<nome-da-feature>.md`, seguindo o template: Objetivo, Comportamento Esperado, Dados, Non-goals, Critérios de Aceite.
+Toda regra de negócio nova começa em `specsPAST/<nome-da-feature>.md`, seguindo o template: Objetivo, Comportamento Esperado, Dados, Non-goals, Critérios de Aceite.
 
 Specs existentes:
-- `specs/funcionario-do-mes.md`
-- `specs/marcacao-evento.md`
+- `specsPAST/funcionario-do-mes.md`
+- `specsPAST/marcacao-evento.md`
 
 **Regra importante:** se uma decisão de negócio não estiver escrita na spec correspondente, não implemente por conta própria — marque como `[PENDENTE]` na spec e pergunte antes de codar.
 
