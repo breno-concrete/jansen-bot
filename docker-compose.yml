@@ -46,6 +46,23 @@ services:
     networks:
       - jansen-network
 
+  postgres-bot:
+    image: postgres:16-alpine
+    container_name: Jansen-Bot-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+        - jansen-network
+
+
+
   # Redis para o cache e sessões do Evolution API (Essencial para não bugar o QR Code)
   redis:
     image: redis:7-alpine
@@ -94,3 +111,4 @@ volumes:
   postgres_data:
   evolution_instances:
   redis_data:
+  postgres_bot_data:
