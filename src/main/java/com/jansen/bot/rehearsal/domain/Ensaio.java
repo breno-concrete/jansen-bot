@@ -6,7 +6,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Aggregate root da votação de ensaio (data-model.md § Ensaio).
@@ -32,9 +34,12 @@ public class Ensaio {
     private final Status status;
     private final DecisaoFinal decisaoFinal;
     private final List<Remarcacao> historicoRemarcacoes = new ArrayList<>();
+    /** Um voto por integrante (chave: integranteId); um novo voto substitui o anterior. */
+    private final Map<String, Voto> votos = new LinkedHashMap<>();
 
     private Ensaio(String id, String dataHora, String local, Instant criadoEm, Instant prazoVotacaoEm,
-                   Status status, DecisaoFinal decisaoFinal, List<Remarcacao> historicoRemarcacoes) {
+                   Status status, DecisaoFinal decisaoFinal, List<Remarcacao> historicoRemarcacoes,
+                   List<Voto> votos) {
         this.id = id;
         this.dataHora = dataHora;
         this.local = local;
@@ -43,19 +48,26 @@ public class Ensaio {
         this.status = status;
         this.decisaoFinal = decisaoFinal;
         this.historicoRemarcacoes.addAll(historicoRemarcacoes);
+        votos.forEach(voto -> this.votos.put(voto.integranteId(), voto));
     }
 
     public static Ensaio criar(String dataHora, String local, Instant criadoEm) {
         return new Ensaio(PhoneUtils.generateId(), dataHora, local != null ? local : "A definir", criadoEm,
-                criadoEm.plus(PRAZO_VOTACAO), Status.VOTACAO_ABERTA, DecisaoFinal.PENDENTE, List.of());
+                criadoEm.plus(PRAZO_VOTACAO), Status.VOTACAO_ABERTA, DecisaoFinal.PENDENTE, List.of(),
+                List.of());
     }
 
     /** Reconstrói um Ensaio já existente (ex.: lido da persistência), sem aplicar regras de criação. */
     public static Ensaio reconstituir(String id, String dataHora, String local, Instant criadoEm,
                                       Instant prazoVotacaoEm, Status status, DecisaoFinal decisaoFinal,
-                                      List<Remarcacao> historicoRemarcacoes) {
+                                      List<Remarcacao> historicoRemarcacoes, List<Voto> votos) {
         return new Ensaio(id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
-                historicoRemarcacoes);
+                historicoRemarcacoes, votos);
+    }
+
+    /** Registra o voto do integrante; se ele já votou, a nova resposta substitui a anterior. */
+    public void registrarVoto(String integranteId, Voto.Escolha escolha, Instant respondidoEm) {
+        votos.put(integranteId, new Voto(integranteId, id, escolha, respondidoEm));
     }
 
     public String id() { return id; }
@@ -73,4 +85,6 @@ public class Ensaio {
     public DecisaoFinal decisaoFinal() { return decisaoFinal; }
 
     public List<Remarcacao> historicoRemarcacoes() { return Collections.unmodifiableList(historicoRemarcacoes); }
+
+    public List<Voto> votos() { return List.copyOf(votos.values()); }
 }

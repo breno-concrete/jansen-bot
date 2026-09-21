@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,5 +59,39 @@ class EnsaioTest {
         Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", null, CRIADO_EM);
 
         assertEquals("A definir", ensaio.local());
+    }
+
+    @Test
+    @DisplayName("T022: registrarVoto guarda o voto do integrante com o horário da resposta")
+    void registrarVoto_guardaOVoto() {
+        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Instant resposta = CRIADO_EM.plusSeconds(60);
+
+        ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, resposta);
+
+        assertEquals(List.of(new Voto("11999991111", ensaio.id(), Voto.Escolha.SIM, resposta)), ensaio.votos());
+    }
+
+    @Test
+    @DisplayName("T022: o segundo voto do mesmo integrante substitui o primeiro (resposta e horário)")
+    void registrarVoto_repetido_substituiOAnterior() {
+        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Instant depois = CRIADO_EM.plusSeconds(120);
+
+        ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM.plusSeconds(60));
+        ensaio.registrarVoto("11999991111", Voto.Escolha.NAO, depois);
+
+        assertEquals(List.of(new Voto("11999991111", ensaio.id(), Voto.Escolha.NAO, depois)), ensaio.votos());
+    }
+
+    @Test
+    @DisplayName("T022: votos de integrantes diferentes coexistem")
+    void registrarVoto_integrantesDiferentes_coexistem() {
+        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+
+        ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM);
+        ensaio.registrarVoto("11999992222", Voto.Escolha.NAO, CRIADO_EM);
+
+        assertEquals(2, ensaio.votos().size());
     }
 }

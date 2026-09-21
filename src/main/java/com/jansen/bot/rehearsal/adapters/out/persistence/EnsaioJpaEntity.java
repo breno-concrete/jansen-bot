@@ -1,6 +1,7 @@
 package com.jansen.bot.rehearsal.adapters.out.persistence;
 
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.Voto;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -50,6 +51,11 @@ class EnsaioJpaEntity {
     @OrderBy("remarcadoEm ASC")
     private List<RemarcacaoEmbeddable> historicoRemarcacoes = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "voto", joinColumns = @JoinColumn(name = "ensaio_id"))
+    @OrderBy("respondidoEm ASC")
+    private List<VotoEmbeddable> votos = new ArrayList<>();
+
     protected EnsaioJpaEntity() {
     }
 
@@ -64,6 +70,8 @@ class EnsaioJpaEntity {
         e.decisaoFinal = ensaio.decisaoFinal();
         ensaio.historicoRemarcacoes().forEach(r ->
                 e.historicoRemarcacoes.add(new RemarcacaoEmbeddable(r.dataHora(), r.remarcadoEm())));
+        ensaio.votos().forEach(v ->
+                e.votos.add(new VotoEmbeddable(v.integranteId(), v.escolha(), v.respondidoEm())));
         return e;
     }
 
@@ -71,7 +79,34 @@ class EnsaioJpaEntity {
         List<Ensaio.Remarcacao> historico = historicoRemarcacoes.stream()
                 .map(r -> new Ensaio.Remarcacao(r.dataHora, r.remarcadoEm))
                 .toList();
-        return Ensaio.reconstituir(id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal, historico);
+        List<Voto> votosDominio = votos.stream()
+                .map(v -> new Voto(v.integranteId, id, v.escolha, v.respondidoEm))
+                .toList();
+        return Ensaio.reconstituir(id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
+                historico, votosDominio);
+    }
+
+    @Embeddable
+    static class VotoEmbeddable {
+
+        @Column(name = "integrante_id", nullable = false)
+        private String integranteId;
+
+        @Enumerated(EnumType.STRING)
+        @Column(nullable = false)
+        private Voto.Escolha escolha;
+
+        @Column(name = "respondido_em")
+        private Instant respondidoEm;
+
+        protected VotoEmbeddable() {
+        }
+
+        VotoEmbeddable(String integranteId, Voto.Escolha escolha, Instant respondidoEm) {
+            this.integranteId = integranteId;
+            this.escolha = escolha;
+            this.respondidoEm = respondidoEm;
+        }
     }
 
     @Embeddable

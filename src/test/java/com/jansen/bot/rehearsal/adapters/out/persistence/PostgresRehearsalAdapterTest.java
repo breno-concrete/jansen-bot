@@ -1,6 +1,7 @@
 package com.jansen.bot.rehearsal.adapters.out.persistence;
 
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.Voto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +53,8 @@ class PostgresRehearsalAdapterTest {
                 "e1", "2026-09-25 19:00", "Estúdio X", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
                 Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.CONFIRMADO,
                 List.of(new Ensaio.Remarcacao("2026-09-26 20:00", Instant.parse("2026-09-20T11:00:00Z")),
-                        new Ensaio.Remarcacao("2026-09-27 20:00", Instant.parse("2026-09-20T12:00:00Z"))));
+                        new Ensaio.Remarcacao("2026-09-27 20:00", Instant.parse("2026-09-20T12:00:00Z"))),
+                List.of());
 
         adapter.salvar(salvo);
         Optional<Ensaio> lido = adapter.buscarPorId("e1");
@@ -81,7 +83,7 @@ class PostgresRehearsalAdapterTest {
         adapter.salvar(Ensaio.criar("2026-09-25 19:00", "A", CRIADO_EM));
         Ensaio encerrado = Ensaio.reconstituir(
                 "encerrado", "2026-09-26 19:00", "B", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
-                Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.PENDENTE, List.of());
+                Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of());
         adapter.salvar(encerrado);
 
         List<Ensaio> abertos = adapter.buscarComVotacaoAberta();
@@ -96,13 +98,39 @@ class PostgresRehearsalAdapterTest {
     void salvar_idExistente_atualizaSemDuplicar() {
         adapter.salvar(Ensaio.reconstituir(
                 "e2", "2026-09-25 19:00", "A", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
-                Ensaio.Status.VOTACAO_ABERTA, Ensaio.DecisaoFinal.PENDENTE, List.of()));
+                Ensaio.Status.VOTACAO_ABERTA, Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of()));
 
         adapter.salvar(Ensaio.reconstituir(
                 "e2", "2026-09-25 19:00", "A", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
-                Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.PENDENTE, List.of()));
+                Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of()));
 
         assertEquals(Ensaio.Status.ENCERRADA, adapter.buscarPorId("e2").orElseThrow().status());
         assertTrue(adapter.buscarComVotacaoAberta().isEmpty());
+    }
+
+    @Test
+    @DisplayName("T022: salvar + buscarPorId preservam os votos do Ensaio")
+    void salvarEBuscarPorId_preservaOsVotos() {
+        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM.plusSeconds(60));
+        ensaio.registrarVoto("11999992222", Voto.Escolha.NAO, CRIADO_EM.plusSeconds(120));
+
+        adapter.salvar(ensaio);
+        Ensaio lido = adapter.buscarPorId(ensaio.id()).orElseThrow();
+
+        assertEquals(ensaio.votos(), lido.votos());
+    }
+
+    @Test
+    @DisplayName("T022: salvar de novo um Ensaio cujo voto mudou atualiza o voto, sem duplicar")
+    void salvar_votoAlterado_atualizaSemDuplicar() {
+        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM.plusSeconds(60));
+        adapter.salvar(ensaio);
+
+        ensaio.registrarVoto("11999991111", Voto.Escolha.NAO, CRIADO_EM.plusSeconds(120));
+        adapter.salvar(ensaio);
+
+        assertEquals(ensaio.votos(), adapter.buscarPorId(ensaio.id()).orElseThrow().votos());
     }
 }
