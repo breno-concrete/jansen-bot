@@ -146,7 +146,7 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       `NotificationPort` para avisar todos elegíveis) até T017/T018 passarem em
       `src/main/java/com/jansen/bot/rehearsal/application/RehearsalVotingService.java`
       (depende de T009, T010, T012)
-- [ ] T022 [US1] Implementar `registrarVoto` no mesmo `RehearsalVotingService.java` até T019
+- [x] T022 [US1] Implementar `registrarVoto` no mesmo `RehearsalVotingService.java` até T019
       passar (depende de T021)
 - [ ] T023 [US1] Migrar `ActionDispatcher.handleScheduleRehearsal` (`BotAction.AGENDAR_ENSAIO`)
       para chamar `RehearsalVotingService.criarEnsaio` em vez de
