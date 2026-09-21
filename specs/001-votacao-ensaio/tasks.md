@@ -31,11 +31,13 @@ tudo, e ter algo demonstrável.
 verde" é o ponto de partida non-negociável — se algo já está quebrado antes de você começar,
 você não vai saber depois se foi você que quebrou.
 
-- [ ] T001 Rodar `./mvnw test` com `JAVA_HOME` apontando para o JDK 21
+- [x] T001 Rodar `./mvnw test` com `JAVA_HOME` apontando para o JDK 21
       (`C:\Users\breno\.jdks\ms-21.0.10-1`) e confirmar que
       `RehearsalServiceCharacterizationTest` está 100% verde. Anote o resultado — é a
       baseline contra a qual toda mudança abaixo será comparada.
-- [ ] T002 [P] Confirmar que os pacotes `src/main/java/com/jansen/bot/rehearsal/{domain,ports,application,adapters/in/web,adapters/out/messaging,adapters/out/persistence}`
+      _Auditado 2026-09-20: `mvn test` (o projeto não tem `mvnw`), JDK 21 → 10 testes, 0 falhas,
+      0 erros, 0 skipped._
+- [x] T002 [P] Confirmar que os pacotes `src/main/java/com/jansen/bot/rehearsal/{domain,ports,application,adapters/in/web,adapters/out/messaging,adapters/out/persistence}`
       existem (hoje só têm `.gitkeep`) e criar os pacotes de teste espelhados em
       `src/test/java/com/jansen/bot/rehearsal/{domain,application}` (ainda vazios).
 
@@ -51,50 +53,55 @@ antes disso existir — é o "esqueleto" da arquitetura hexagonal do `plan.md`.
 
 **⚠️ CRÍTICO**: não pule para a Phase 3 sem terminar esta fase — toda US depende dela.
 
-- [ ] T003 [P] Escrever teste que falha para `RegraDeQuorum` (fronteira de 50% — ver
+- [x] T003 [P] Escrever teste que falha para `RegraDeQuorum` (fronteira de 50% — ver
       `research.md` D6: 4 de 8 "sim" NÃO é abaixo do quórum; 3 de 8 "sim" É) em
       `src/test/java/com/jansen/bot/rehearsal/domain/RegraDeQuorumTest.java`
-- [ ] T004 Implementar `RegraDeQuorum` (aritmética inteira `votosSim*2 >= total`, sem
+- [x] T004 Implementar `RegraDeQuorum` (aritmética inteira `votosSim*2 >= total`, sem
       `double`) em `src/main/java/com/jansen/bot/rehearsal/domain/RegraDeQuorum.java` até
       T003 passar
-- [ ] T005 [P] Implementar `Voto` (record + enum `Escolha { SIM, NAO, NAO_RESPONDEU }`,
+- [x] T005 [P] Implementar `Voto` (record + enum `Escolha { SIM, NAO, NAO_RESPONDEU }`,
       campos `integranteId`, `ensaioId`, `respondidoEm` nullable — ver `data-model.md`) em
       `src/main/java/com/jansen/bot/rehearsal/domain/Voto.java`
-- [ ] T006 [P] Implementar `RelatorioVotacao` (record com `ensaioId`, `totalIntegrantesElegiveis`,
+- [x] T006 [P] Implementar `RelatorioVotacao` (record com `ensaioId`, `totalIntegrantesElegiveis`,
       `confirmados`, `recusados`, `naoRespondeu`, `percentualSim`, `abaixoDoQuorum` — ver
       `data-model.md`) em `src/main/java/com/jansen/bot/rehearsal/domain/RelatorioVotacao.java`
-- [ ] T007 [P] [US-shared] Escrever teste que falha para a criação de `Ensaio` (estado
+- [x] T007 [P] [US-shared] Escrever teste que falha para a criação de `Ensaio` (estado
       inicial: `status=VOTACAO_ABERTA`, `prazoVotacaoEm = criadoEm + 12h`,
       `historicoRemarcacoes` vazio — FR-007) em
       `src/test/java/com/jansen/bot/rehearsal/domain/EnsaioTest.java`
-- [ ] T008 Implementar `Ensaio` (aggregate root com os campos de `data-model.md`: `id`,
+- [x] T008 Implementar `Ensaio` (aggregate root com os campos de `data-model.md`: `id`,
       `dataHora`, `local`, `criadoEm`, `prazoVotacaoEm`, `status`, `decisaoFinal`,
       `historicoRemarcacoes`) — só o suficiente para T007 passar — em
       `src/main/java/com/jansen/bot/rehearsal/domain/Ensaio.java` (depende de T005 para o
       tipo `Voto` usado internamente)
-- [ ] T009 [P] Definir a porta `RehearsalRepositoryPort` (`salvar`, `buscarPorId`,
+- [x] T009 [P] Definir a porta `RehearsalRepositoryPort` (`salvar`, `buscarPorId`,
       `buscarComVotacaoAberta` — ver `contracts/rehearsal-ports.md`) em
       `src/main/java/com/jansen/bot/rehearsal/ports/RehearsalRepositoryPort.java`
-- [ ] T010 [P] Definir a porta `NotificationPort` (`notificarIntegrante`, `notificarTodos`,
+- [x] T010 [P] Definir a porta `NotificationPort` (`notificarIntegrante`, `notificarTodos`,
       `notificarLider`) em
       `src/main/java/com/jansen/bot/rehearsal/ports/NotificationPort.java`
-- [ ] T011 [P] Definir a porta `ClockPort` (`Instant agora()`) em
+- [x] T011 [P] Definir a porta `ClockPort` (`Instant agora()`) em
       `src/main/java/com/jansen/bot/rehearsal/ports/ClockPort.java`
-- [ ] T012 [P] Definir a porta `LeaderPolicyPort` (`boolean isLider(String telefone)` — ver
+- [x] T012 [P] Definir a porta `LeaderPolicyPort` (`boolean isLider(String telefone)` — ver
       `contracts/rehearsal-ports.md`, existe para o domínio não depender de `AppProperties`
       diretamente) em
       `src/main/java/com/jansen/bot/rehearsal/ports/LeaderPolicyPort.java`
-- [ ] T013 [P] Implementar `GoogleSheetsRehearsalAdapter implements RehearsalRepositoryPort`
-      delegando para `GoogleSheetsRepository` já existente (mapeando `Ensaio`↔`Rehearsal` e
-      `Voto`↔`ResponseRecord`, ver `data-model.md` § Mapeamento) em
-      `src/main/java/com/jansen/bot/rehearsal/adapters/out/persistence/GoogleSheetsRehearsalAdapter.java`
-- [ ] T014 [P] Implementar `EvolutionNotificationAdapter implements NotificationPort`
+- [x] T013 [P] Implementar `PostgresRehearsalAdapter implements RehearsalRepositoryPort` com
+      Spring Data JPA (ver `research.md` D4 e `data-model.md` § Mapeamento) em
+      `src/main/java/com/jansen/bot/rehearsal/adapters/out/persistence/`, incluindo: entidade
+      JPA de `Ensaio` (+ histórico de remarcações), repositório Spring Data, migration Flyway
+      da tabela, configuração de datasource via `.env`/`application.properties` e o database
+      `jansenbot` no serviço `postgres-bot` do `docker-compose.yml` (volume próprio). Só `Ensaio` (votos entram na T022/T030).
+      Teste de integração com Testcontainers (salvar, buscar por id, listar com votação
+      aberta, rodando a migration) em
+      `src/test/java/com/jansen/bot/rehearsal/adapters/out/persistence/`
+- [x] T014 [P] Implementar `EvolutionNotificationAdapter implements NotificationPort`
       delegando para `EvolutionClient` (reaproveitar `sendTextMessageSeries` para
       `notificarTodos`, respeitando o intervalo de 20s já implementado) em
       `src/main/java/com/jansen/bot/rehearsal/adapters/out/messaging/EvolutionNotificationAdapter.java`
-- [ ] T015 [P] Implementar `SystemClock implements ClockPort` (retorna `Instant.now()` em
+- [x] T015 [P] Implementar `SystemClock implements ClockPort` (retorna `Instant.now()` em
       produção) em `src/main/java/com/jansen/bot/rehearsal/adapters/out/SystemClock.java`
-- [ ] T016 [P] Implementar `AdminPhoneLeaderPolicyAdapter implements LeaderPolicyPort`
+- [x] T016 [P] Implementar `AdminPhoneLeaderPolicyAdapter implements LeaderPolicyPort`
       reaproveitando a mesma lógica de `ActionDispatcher.isAdmin()` (ler
       `AppProperties.getAdminPhones()`, normalizar com `PhoneUtils`) em
       `src/main/java/com/jansen/bot/rehearsal/adapters/out/AdminPhoneLeaderPolicyAdapter.java`
