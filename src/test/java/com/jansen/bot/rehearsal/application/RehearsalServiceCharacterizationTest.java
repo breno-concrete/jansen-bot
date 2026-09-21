@@ -38,13 +38,6 @@ class RehearsalServiceCharacterizationTest {
     private RehearsalService rehearsalService;
 
     @Test
-    @DisplayName("Nível 0 — dependências são injetadas e o serviço é instanciado sem erro")
-    void deveInstanciarComDependenciasMockadas() {
-        assertNotNull(rehearsalService,
-                "RehearsalService deveria ter sido instanciado pelo Mockito via @InjectMocks");
-    }
-
-    @Test
     @DisplayName("Nível 1a — cria ensaio com dataHora e local informados")
     void deveCriarEnsaioComDataHoraELocalInformados(){
 
