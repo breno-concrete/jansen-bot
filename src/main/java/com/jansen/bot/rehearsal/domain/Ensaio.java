@@ -33,18 +33,29 @@ public class Ensaio {
     private final DecisaoFinal decisaoFinal;
     private final List<Remarcacao> historicoRemarcacoes = new ArrayList<>();
 
-    private Ensaio(String id, String dataHora, String local, Instant criadoEm) {
+    private Ensaio(String id, String dataHora, String local, Instant criadoEm, Instant prazoVotacaoEm,
+                   Status status, DecisaoFinal decisaoFinal, List<Remarcacao> historicoRemarcacoes) {
         this.id = id;
         this.dataHora = dataHora;
         this.local = local;
         this.criadoEm = criadoEm;
-        this.prazoVotacaoEm = criadoEm.plus(PRAZO_VOTACAO);
-        this.status = Status.VOTACAO_ABERTA;
-        this.decisaoFinal = DecisaoFinal.PENDENTE;
+        this.prazoVotacaoEm = prazoVotacaoEm;
+        this.status = status;
+        this.decisaoFinal = decisaoFinal;
+        this.historicoRemarcacoes.addAll(historicoRemarcacoes);
     }
 
     public static Ensaio criar(String dataHora, String local, Instant criadoEm) {
-        return new Ensaio(PhoneUtils.generateId(), dataHora, local != null ? local : "A definir", criadoEm);
+        return new Ensaio(PhoneUtils.generateId(), dataHora, local != null ? local : "A definir", criadoEm,
+                criadoEm.plus(PRAZO_VOTACAO), Status.VOTACAO_ABERTA, DecisaoFinal.PENDENTE, List.of());
+    }
+
+    /** Reconstrói um Ensaio já existente (ex.: lido da persistência), sem aplicar regras de criação. */
+    public static Ensaio reconstituir(String id, String dataHora, String local, Instant criadoEm,
+                                      Instant prazoVotacaoEm, Status status, DecisaoFinal decisaoFinal,
+                                      List<Remarcacao> historicoRemarcacoes) {
+        return new Ensaio(id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
+                historicoRemarcacoes);
     }
 
     public String id() { return id; }

@@ -21,6 +21,8 @@
         <java.version>21</java.version>
         <google-api-client.version>2.7.0</google-api-client.version>
         <google-sheets.version>v4-rev20241206-2.0.0</google-sheets.version>
+        <!-- Docker 29+ exige API >= 1.40; o Testcontainers 1.20.4 (do Spring Boot 3.4.1) usa 1.32 -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -46,6 +48,10 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

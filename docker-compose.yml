@@ -46,22 +46,26 @@ services:
     networks:
       - jansen-network
 
+  # PostgreSQL do bot (Ensaio etc.). Volume próprio, separado do Postgres da Evolution.
   postgres-bot:
     image: postgres:16-alpine
     container_name: Jansen-Bot-postgres
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      - POSTGRES_USER=${BOT_DB_USER:-jansenbot}
+      - POSTGRES_PASSWORD=${BOT_DB_PASSWORD}
+      - POSTGRES_DB=${BOT_DB_NAME:-jansenbot}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_bot_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BOT_DB_USER:-jansenbot} -d ${BOT_DB_NAME:-jansenbot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
     networks:
-        - jansen-network
-
-
+      - jansen-network
 
   # Redis para o cache e sessões do Evolution API (Essencial para não bugar o QR Code)
   redis:
@@ -96,10 +100,14 @@ services:
       - BANDA_ADMIN_PHONES=${BANDA_ADMIN_PHONES}
       - REMINDER_CRON=0 0 9 * * *
       - REMINDER_TIMEZONE=America/Sao_Paulo
+      - BOT_DB_URL=jdbc:postgresql://postgres-bot:5432/${BOT_DB_NAME:-jansenbot}
+      - BOT_DB_USER=${BOT_DB_USER:-jansenbot}
+      - BOT_DB_PASSWORD=${BOT_DB_PASSWORD}
     volumes:
       - ./credentials:/app/credentials:ro
     depends_on:
       - evolution-api
+      - postgres-bot
     networks:
       - jansen-network
 
