@@ -123,25 +123,25 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
 
 ### Tests for User Story 1 ⚠️ escrever ANTES da implementação, ver falhar, só então implementar
 
-- [ ] T017 [P] [US1] Teste: `RehearsalVotingService.criarEnsaio` chamado por um telefone que
+- [x] T017 [P] [US1] Teste: `RehearsalVotingService.criarEnsaio` chamado por um telefone que
       não é líder lança exceção (`NaoAutorizadoException` ou similar) e NÃO chama
       `RehearsalRepositoryPort.salvar` nem `NotificationPort` (FR-001) em
       `src/test/java/com/jansen/bot/rehearsal/application/RehearsalVotingServiceTest.java`
-- [ ] T018 [P] [US1] Teste: `criarEnsaio` chamado pela líder cria `Ensaio` com
+- [x] T018 [P] [US1] Teste: `criarEnsaio` chamado pela líder cria `Ensaio` com
       `status=VOTACAO_ABERTA`, persiste via `RehearsalRepositoryPort.salvar`, e notifica
       (via `NotificationPort.notificarTodos`) todos os integrantes elegíveis — mesma regra
       de exclusão de "projeção" que existe hoje em `RehearsalService.checkAllResponded`
       (FR-002, FR-003) no mesmo arquivo de T017
-- [ ] T019 [P] [US1] Teste: `registrarVoto` com escolha SIM ou NAO grava o `Voto` e chama
+- [x] T019 [P] [US1] Teste: `registrarVoto` com escolha SIM ou NAO grava o `Voto` e chama
       `NotificationPort.notificarIntegrante` confirmando o recebimento para quem votou
       (FR-005) no mesmo arquivo de T017
-- [ ] T020 [US1] Rodar `RehearsalServiceCharacterizationTest` de novo (deve continuar 100%
+- [x] T020 [US1] Rodar `RehearsalServiceCharacterizationTest` de novo (deve continuar 100%
       verde — `ActionDispatcher` ainda não foi tocado nesta fase, então o legado não pode
       ter mudado de comportamento)
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] Criar `RehearsalVotingService` implementando `criarEnsaio` (usa
+- [x] T021 [US1] Criar `RehearsalVotingService` implementando `criarEnsaio` (usa
       `LeaderPolicyPort` para autorizar, `RehearsalRepositoryPort` para persistir,
       `NotificationPort` para avisar todos elegíveis) até T017/T018 passarem em
       `src/main/java/com/jansen/bot/rehearsal/application/RehearsalVotingService.java`
