@@ -1,7 +1,9 @@
 package com.jansen.bot.rehearsal.application;
 
+import com.jansen.bot.exception.EnsaioNaoEncontradoException;
 import com.jansen.bot.exception.NaoAutorizadoException;
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.Voto;
 import com.jansen.bot.rehearsal.ports.ClockPort;
 import com.jansen.bot.rehearsal.ports.IntegranteRepositoryPort;
 import com.jansen.bot.rehearsal.ports.LeaderPolicyPort;
@@ -49,6 +51,22 @@ public class RehearsalVotingService {
         notificacao.notificarTodos(destinatarios, mensagemDePedidoDeConfirmacao(ensaio));
 
         return ensaio;
+    }
+
+    /** FR-005: grava o voto no Ensaio, persiste e confirma a resposta a quem votou. */
+    public void registrarVoto(String ensaioId, String telefoneIntegrante, Voto.Escolha escolha) {
+        Ensaio ensaio = repositorio.buscarPorId(ensaioId)
+                .orElseThrow(() -> new EnsaioNaoEncontradoException(ensaioId));
+
+        ensaio.registrarVoto(PhoneUtils.normalize(telefoneIntegrante), escolha, relogio.agora());
+        repositorio.salvar(ensaio);
+
+        notificacao.notificarIntegrante(telefoneIntegrante, mensagemDeConfirmacaoDoVoto(escolha));
+    }
+
+    private String mensagemDeConfirmacaoDoVoto(Voto.Escolha escolha) {
+        String resposta = escolha == Voto.Escolha.SIM ? "SIM" : "NÃO";
+        return "Sua resposta *" + resposta + "* foi registrada.";
     }
 
     private String mensagemDePedidoDeConfirmacao(Ensaio ensaio) {

@@ -1,12 +1,15 @@
 package com.jansen.bot.rehearsal.application;
 
+import com.jansen.bot.exception.EnsaioNaoEncontradoException;
 import com.jansen.bot.exception.NaoAutorizadoException;
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.Voto;
 import com.jansen.bot.rehearsal.ports.ClockPort;
 import com.jansen.bot.rehearsal.ports.IntegranteRepositoryPort;
 import com.jansen.bot.rehearsal.ports.LeaderPolicyPort;
 import com.jansen.bot.rehearsal.ports.NotificationPort;
 import com.jansen.bot.rehearsal.ports.RehearsalRepositoryPort;
+import com.jansen.bot.util.PhoneUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,8 @@ class RehearsalVotingServiceTest {
     private static final String LIDER = "5511999990000";
     private static final String MEMBRO = "5511999991111";
     private static final String MEMBRO_2 = "5511999992222";
+    // data-model.md: Voto.integranteId é o telefone normalizado
+    private static final String MEMBRO_ID = PhoneUtils.normalize(MEMBRO);
     private static final Instant AGORA = Instant.parse("2026-09-20T10:00:00Z");
 
     private FakeRehearsalRepository repositorio;
@@ -99,6 +104,68 @@ class RehearsalVotingServiceTest {
         service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
 
         assertEquals(List.of(MEMBRO, MEMBRO_2), notificacao.paraTodos.get(0).telefones());
+    }
+
+    @Test
+    @DisplayName("FR-005/US1-2: registrarVoto com SIM grava o voto no Ensaio, persiste e confirma o 'sim' a quem votou")
+    void registrarVoto_sim_gravaVotoEConfirmaAoIntegrante() {
+        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+
+        service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.SIM);
+
+        assertEquals(List.of(new Voto(MEMBRO_ID, ensaio.id(), Voto.Escolha.SIM, AGORA)), ultimoSalvo().votos());
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertTrue(notificacao.paraIntegrante.get(0).startsWith(MEMBRO));
+        assertTrue(notificacao.paraIntegrante.get(0).toLowerCase().contains("sim"));
+    }
+
+    @Test
+    @DisplayName("FR-005/US1-3: registrarVoto com NAO grava o voto no Ensaio, persiste e confirma o 'não' a quem votou")
+    void registrarVoto_nao_gravaVotoEConfirmaAoIntegrante() {
+        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+
+        service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.NAO);
+
+        assertEquals(List.of(new Voto(MEMBRO_ID, ensaio.id(), Voto.Escolha.NAO, AGORA)), ultimoSalvo().votos());
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertTrue(notificacao.paraIntegrante.get(0).startsWith(MEMBRO));
+        assertTrue(notificacao.paraIntegrante.get(0).toLowerCase().contains("não"));
+    }
+
+    @Test
+    @DisplayName("T022: registrarVoto de um ensaio inexistente lança EnsaioNaoEncontradoException, sem salvar nem notificar")
+    void registrarVoto_ensaioInexistente_lancaExcecaoSemSalvarNemNotificar() {
+        assertThrows(EnsaioNaoEncontradoException.class,
+                () -> service.registrarVoto("nao-existe", MEMBRO, Voto.Escolha.SIM));
+
+        assertTrue(repositorio.salvos.isEmpty());
+        assertTrue(notificacao.paraIntegrante.isEmpty());
+    }
+
+    @Test
+    @DisplayName("T022: o mesmo integrante votando de novo substitui o voto anterior e a nova resposta também é confirmada")
+    void registrarVoto_repetido_substituiOVotoAnterior() {
+        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+
+        service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.SIM);
+        service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.NAO);
+
+        assertEquals(List.of(new Voto(MEMBRO_ID, ensaio.id(), Voto.Escolha.NAO, AGORA)), ultimoSalvo().votos());
+        assertEquals(2, notificacao.paraIntegrante.size());
+    }
+
+    @Test
+    @DisplayName("data-model.md: o voto é gravado com o telefone normalizado, mesmo que chegue formatado")
+    void registrarVoto_normalizaOTelefoneDoIntegrante() {
+        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+
+        service.registrarVoto(ensaio.id(), "(11) 99999-1111", Voto.Escolha.SIM);
+
+        assertEquals(MEMBRO_ID, ultimoSalvo().votos().get(0).integranteId());
+    }
+
+    private Ensaio ultimoSalvo() {
+        return repositorio.salvos.get(repositorio.salvos.size() - 1);
     }
 
     // ---- fakes ----
