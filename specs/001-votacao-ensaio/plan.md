@@ -20,15 +20,12 @@ existente em `rehearsal/{domain,ports,application,adapters}` usando o padrão **
 **Language/Version**: Java 21, Spring Boot 3.4.1
 
 **Primary Dependencies**: Spring Web/WebFlux, Spring Scheduling (`@Scheduled`, já usado em
-`scheduler/*`), google-api-services-sheets (persistência atual), JUnit 5 + Mockito
+`scheduler/*`), Spring Data JPA + Flyway + Postgres (`Ensaio`), google-api-services-sheets (legado), JUnit 5 + Mockito
 (`spring-boot-starter-test`)
 
-**Storage**: Google Sheets via `GoogleSheetsRepository` (persistência atual de `Rehearsal` e
-`ResponseRecord`). Há infraestrutura Postgres/Flyway/JPA já adicionada ao `pom.xml` e
-`docker-compose.yml`, mas ainda **não** conectada a nenhuma entidade — ver Decisão D4 em
-`research.md`: esta feature mantém Sheets como adapter e isola o acesso atrás de uma porta,
-para que a troca futura para Postgres seja uma implementação nova do adapter, não um
-retrabalho do domínio.
+**Storage**: Postgres via Spring Data JPA + Flyway (database `jansenbot` no serviço `postgres-bot` do
+`docker-compose.yml`) para `Ensaio`, atrás de `RehearsalRepositoryPort` — ver Decisão D4 em
+`research.md`. O restante do bot (legado) continua no Google Sheets via `GoogleSheetsRepository`.
 
 **Testing**: JUnit 5 + Mockito. Characterization tests existentes em
 `RehearsalServiceCharacterizationTest` continuam como rede de segurança de regressão do
@@ -108,7 +105,7 @@ src/main/java/com/jansen/bot/rehearsal/
 ├── adapters/in/web/
 │   └── (chamado a partir do ActionDispatcher existente — sem endpoint HTTP novo)
 ├── adapters/out/persistence/
-│   └── GoogleSheetsRehearsalAdapter.java  # implementa RehearsalRepositoryPort sobre GoogleSheetsRepository
+│   └── PostgresRehearsalAdapter.java  # implementa RehearsalRepositoryPort sobre JPA/Postgres
 └── adapters/out/messaging/
     └── EvolutionNotificationAdapter.java  # implementa NotificationPort sobre EvolutionClient
 

@@ -44,17 +44,21 @@
   não é o que `ActionDispatcher` checa hoje) — rejeitado para não introduzir uma segunda
   noção de "admin" incompatível com o resto do bot.
 
-## D4 — Persistência: manter Google Sheets, isolado atrás de porta
+## D4 — Persistência: Postgres via JPA/Flyway, isolado atrás de porta
 
-- **Decision**: `GoogleSheetsRehearsalAdapter` implementa `RehearsalRepositoryPort` chamando
-  o `GoogleSheetsRepository` existente. Migração para Postgres (infra já parcialmente
-  adicionada em `pom.xml`/`docker-compose.yml`, mas sem entidades JPA ainda) fica fora do
-  escopo desta feature.
-- **Rationale**: Evita acoplar o refactor de votação a uma migração de banco não pedida na
-  spec — escopo mínimo primeiro. Como a porta já isola o domínio do Sheets, trocar para
-  Postgres depois é implementar um novo adapter, não alterar `RehearsalVotingService`.
-- **Alternatives considered**: Migrar para Postgres já nesta feature — rejeitado por escopo;
-  nada na spec-001 pede troca de banco.
+- **Decision**: `PostgresRehearsalAdapter` implementa `RehearsalRepositoryPort` usando Spring
+  Data JPA + Flyway (dependências já no `pom.xml`). O bot usa o serviço dedicado `postgres-bot`
+  do `docker-compose.yml`, com volume próprio (`postgres_bot_data`) e database `jansenbot`,
+  separado do Postgres da Evolution API; credenciais via `.env` (AGENTS.md). Nesta feature só `Ensaio` é persistido
+  (id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal, histórico de
+  remarcações); a tabela de votos entra junto com o comportamento que guarda votos no `Ensaio`
+  (T022/T030), em migration própria. O restante do bot (legado) continua no Google Sheets.
+- **Rationale**: Decisão do Breno (2026-09-20): "não haverá mais Sheets, quero colocar banco".
+  A porta já isola o domínio da persistência, então o `RehearsalVotingService` não muda com
+  a troca. A infra JPA/Flyway/Postgres já estava parcialmente adicionada, faltava conectá-la.
+- **Alternatives considered**: Manter `GoogleSheetsRehearsalAdapter` (plano original,
+  rejeitado pelo Breno). Usar o Postgres da Evolution com um database separado (rejeitado por
+  Breno: o serviço `postgres-bot` já existia no compose e isola os dados do bot).
 
 ## D5 — Disparo do prazo de 12h e do lembrete de 1h antes
 

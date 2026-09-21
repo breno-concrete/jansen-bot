@@ -2,8 +2,8 @@
 
 Este projeto não expõe uma API HTTP pública para esta feature (entrada continua sendo
 webhook do WhatsApp → `ActionDispatcher`). O "contrato" que importa aqui é a fronteira entre
-`rehearsal/application` e o mundo externo, via `rehearsal/ports`. Qualquer adapter (Sheets,
-Postgres futuro, Evolution, um teste fake) deve satisfazer estas interfaces.
+`rehearsal/application` e o mundo externo, via `rehearsal/ports`. Qualquer adapter (Postgres,
+Evolution, um teste fake) deve satisfazer estas interfaces.
 
 ## In-port (chamado pelo `ActionDispatcher`)
 
@@ -47,8 +47,8 @@ public interface LeaderPolicyPort {
 }
 ```
 
-- `GoogleSheetsRehearsalAdapter implements RehearsalRepositoryPort` — delega para
-  `GoogleSheetsRepository` (ver `data-model.md` § Mapeamento).
+- `PostgresRehearsalAdapter implements RehearsalRepositoryPort` — persiste via JPA (ver
+  `data-model.md` § Mapeamento).
 - `EvolutionNotificationAdapter implements NotificationPort` — delega para `EvolutionClient`,
   reaproveitando `sendTextMessageSeries` para `notificarTodos`.
 - `ClockPort` em produção retorna `Instant.now()`; em teste, um fake com relógio controlável

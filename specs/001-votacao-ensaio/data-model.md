@@ -55,15 +55,17 @@ Não é uma tabela/aba nova — é a leitura de `Member` (já existente) mais o 
 está na lista, `MEMBRO` caso contrário. `Integrante` no domínio é só essa combinação,
 mapeada pelo adapter a partir de `Member` + `AppProperties`.
 
-## Mapeamento para persistência existente
+## Mapeamento para persistência
 
-Nenhuma aba/tabela nova é necessária:
+Persistência em Postgres via JPA/Flyway, no adapter (ver `research.md` D4). O domínio não
+tem anotações JPA; o `PostgresRehearsalAdapter` mapeia `Ensaio` de/para uma entidade JPA.
 
-- `Ensaio.status/decisaoFinal/prazoVotacaoEm/historicoRemarcacoes` mapeiam para o `Rehearsal`
-  record existente (`status`, e possivelmente reaproveitar/estender `opcoesVoto` ou adicionar
-  colunas na aba `Rehearsals` — detalhe de implementação do
-  `GoogleSheetsRehearsalAdapter`, não do domínio).
-- `Voto` mapeia para `ResponseRecord` (`tipo = "CONFIRMACAO"`, `valor ∈ {SIM, NAO}`), como já
-  ocorre hoje em `registerPresence`. `NAO_RESPONDEU` é um valor calculado no momento do
-  relatório, não necessariamente persistido como um "voto" novo (decisão de detalhe fica para
-  `tasks.md`/implementação, não bloqueia o design).
+- `Ensaio` (id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal) mapeia para
+  uma tabela própria; `historicoRemarcacoes` (novo `dataHora` + timestamp) para uma tabela
+  filha. Nomes de tabela/coluna e tipos são decididos na migration Flyway da T013.
+- `Voto` ainda não é persistido: o `Ensaio` só passa a guardar votos na T030. A tabela de
+  votos entra em migration própria nessa task. `NAO_RESPONDEU` é atribuído pelo sistema ao
+  encerrar por prazo (FR-009); se ele é gravado ou só calculado no relatório fica para essa
+  task.
+- O legado (`Rehearsal`/`ResponseRecord` no Google Sheets) segue existindo enquanto o Strangler
+  Fig (D2) não terminar; os dois não devem coexistir para o mesmo `BotAction` (ver contratos).

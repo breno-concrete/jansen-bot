@@ -4,8 +4,9 @@
 
 - JDK 21 ativo (`JAVA_HOME` apontando para `C:\Users\breno\.jdks\ms-21.0.10-1` — Mockito/Byte
   Buddy falha ao mockar classes sob JDK 25, ver nota de projeto já registrada).
-- Nenhuma infra externa necessária para os testes abaixo (Sheets/Evolution são mockados ou
-  substituídos por fakes das portas).
+- Nenhuma infra externa necessária para os testes de domínio e de caso de uso abaixo (fakes
+  das portas). O teste de integração do adapter Postgres (T013) usa Testcontainers e exige
+  Docker em execução.
 
 ## 1. Rede de regressão do legado (rodar antes e depois de cada migração de `BotAction`)
 
