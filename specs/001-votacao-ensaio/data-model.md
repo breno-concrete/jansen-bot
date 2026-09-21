@@ -43,8 +43,8 @@ integrante continua pendente (FR-004, Edge Cases).
 | Campo | Tipo |
 |---|---|
 | `ensaioId` | `String` |
-| `totalIntegrantesElegiveis` | `int` (exclui a líder — ver Assumption da spec; exclui "projeção" como já faz `RehearsalService.checkAllResponded`) |
-| `confirmados`, `recusados`, `naoRespondeu` | `int` |
+| `totalIntegrantesElegiveis` | `int` (calculado do cadastro vigente, não fixo — FR-018; exclui a líder — ver Assumption da spec; exclui "projeção" como já faz `RehearsalService.checkAllResponded`) |
+| `confirmados`, `recusados`, `naoRespondeu` | `int` (soma = `totalIntegrantesElegiveis`, invariante validada no construtor — FR-018) |
 | `percentualSim` | derivado, apenas para exibição (a decisão de quórum usa `RegraDeQuorum`, não este campo — ver `research.md` D6) |
 | `abaixoDoQuorum` | `boolean` |
 

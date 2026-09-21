@@ -107,6 +107,8 @@ A qualquer momento a partir do dia em que o ensaio foi criado — com a votaçã
 - **FR-016**: Um voto recebido após o encerramento da votação (relatório já entregue) MUST ser descartado sem alterar o relatório já enviado nem reabrir a votação.
 - **FR-017**: O sistema MUST reiniciar o prazo de 12 horas de votação a cada remarcação, contando a partir do momento da remarcação.
 
+- **FR-018**: O total de integrantes elegíveis de uma votação MUST ser calculado a partir do cadastro de integrantes vigente no momento (a quantidade de integrantes pode aumentar ou diminuir com o tempo, não é um número fixo), excluindo quem solicitou o ensaio (a líder), ou seja, total de integrantes menos a líder. No relatório, a soma de confirmados, recusados e não respondidos MUST ser igual ao total de elegíveis.
+
 ### Key Entities
 
 - **Ensaio**: Representa um evento de ensaio marcado pela líder — data/hora atual, data/hora de criação, status da votação (aberta, encerrada), status de decisão final (confirmado, cancelado, pendente de decisão), e histórico de remarcações.
