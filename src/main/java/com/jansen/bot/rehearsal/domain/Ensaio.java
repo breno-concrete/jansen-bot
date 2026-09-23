@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Aggregate root da votação de ensaio (data-model.md § Ensaio).
@@ -27,6 +28,7 @@ public class Ensaio {
     public record Remarcacao(String dataHora, Instant remarcadoEm) {}
 
     private final String id;
+    private final TipoEnsaio tipo;
     private final String dataHora;
     private final String local;
     private final Instant criadoEm;
@@ -37,10 +39,11 @@ public class Ensaio {
     /** Um voto por integrante (chave: integranteId); um novo voto substitui o anterior. */
     private final Map<String, Voto> votos = new LinkedHashMap<>();
 
-    private Ensaio(String id, String dataHora, String local, Instant criadoEm, Instant prazoVotacaoEm,
+    private Ensaio(String id, TipoEnsaio tipo, String dataHora, String local, Instant criadoEm, Instant prazoVotacaoEm,
                    Status status, DecisaoFinal decisaoFinal, List<Remarcacao> historicoRemarcacoes,
                    List<Voto> votos) {
         this.id = id;
+        this.tipo = Objects.requireNonNull(tipo, "tipo do ensaio é obrigatório (FR-019)");
         this.dataHora = dataHora;
         this.local = local;
         this.criadoEm = criadoEm;
@@ -51,17 +54,17 @@ public class Ensaio {
         votos.forEach(voto -> this.votos.put(voto.integranteId(), voto));
     }
 
-    public static Ensaio criar(String dataHora, String local, Instant criadoEm) {
-        return new Ensaio(PhoneUtils.generateId(), dataHora, local != null ? local : "A definir", criadoEm,
+    public static Ensaio criar(TipoEnsaio tipo, String dataHora, String local, Instant criadoEm) {
+        return new Ensaio(PhoneUtils.generateId(), tipo, dataHora, local != null ? local : "A definir", criadoEm,
                 criadoEm.plus(PRAZO_VOTACAO), Status.VOTACAO_ABERTA, DecisaoFinal.PENDENTE, List.of(),
                 List.of());
     }
 
     /** Reconstrói um Ensaio já existente (ex.: lido da persistência), sem aplicar regras de criação. */
-    public static Ensaio reconstituir(String id, String dataHora, String local, Instant criadoEm,
+    public static Ensaio reconstituir(String id, TipoEnsaio tipo, String dataHora, String local, Instant criadoEm,
                                       Instant prazoVotacaoEm, Status status, DecisaoFinal decisaoFinal,
                                       List<Remarcacao> historicoRemarcacoes, List<Voto> votos) {
-        return new Ensaio(id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
+        return new Ensaio(id, tipo, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
                 historicoRemarcacoes, votos);
     }
 
@@ -71,6 +74,8 @@ public class Ensaio {
     }
 
     public String id() { return id; }
+
+    public TipoEnsaio tipo() { return tipo; }
 
     public String dataHora() { return dataHora; }
 

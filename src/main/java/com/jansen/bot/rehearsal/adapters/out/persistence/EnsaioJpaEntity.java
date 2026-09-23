@@ -1,6 +1,7 @@
 package com.jansen.bot.rehearsal.adapters.out.persistence;
 
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.TipoEnsaio;
 import com.jansen.bot.rehearsal.domain.Voto;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -25,6 +26,10 @@ class EnsaioJpaEntity {
 
     @Id
     private String id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoEnsaio tipo;
 
     @Column(name = "data_hora", nullable = false)
     private String dataHora;
@@ -62,6 +67,7 @@ class EnsaioJpaEntity {
     static EnsaioJpaEntity de(Ensaio ensaio) {
         EnsaioJpaEntity e = new EnsaioJpaEntity();
         e.id = ensaio.id();
+        e.tipo = ensaio.tipo();
         e.dataHora = ensaio.dataHora();
         e.local = ensaio.local();
         e.criadoEm = ensaio.criadoEm();
@@ -82,7 +88,7 @@ class EnsaioJpaEntity {
         List<Voto> votosDominio = votos.stream()
                 .map(v -> new Voto(v.integranteId, id, v.escolha, v.respondidoEm))
                 .toList();
-        return Ensaio.reconstituir(id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
+        return Ensaio.reconstituir(id, tipo, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal,
                 historico, votosDominio);
     }
 
