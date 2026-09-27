@@ -16,6 +16,11 @@ falha antes e passa depois.
 US3=P2, US4=P2). Cada fase termina num "Checkpoint" — um ponto em que dá pra parar, rodar
 tudo, e ter algo demonstrável.
 
+**Atualização 2026-09-21** (`/speckit-clarify`): o spec ganhou FR-019 a FR-022 (tipo de ensaio,
+quem vota, vários ensaios pendentes) e o percentual com uma casa decimal. As tasks já
+concluídas foram mantidas como histórico; o retrabalho entrou como T022A–T022F (Phase 3) e
+T026A (Phase 4). A antiga T022A (adapter de integrantes) virou T022D.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: pode ser feito em paralelo (arquivo diferente, sem depender de uma task ainda não
@@ -148,14 +153,52 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       (depende de T009, T010, T012)
 - [x] T022 [US1] Implementar `registrarVoto` no mesmo `RehearsalVotingService.java` até T019
       passar (depende de T021)
+- [x] T022A [US1] Escrever teste que falha e implementar o tipo do ensaio: enum `TipoEnsaio
+      { VOCAL, INSTRUMENTAL, GERAL }` e `Ensaio.criar(tipo, dataHora, local, criadoEm)` (o tipo
+      passa a fazer parte de `Ensaio`, imutável; `reconstituir` também recebe o tipo — FR-019) em
+      `src/main/java/com/jansen/bot/rehearsal/domain/TipoEnsaio.java` e `Ensaio.java`, com teste
+      em `src/test/java/com/jansen/bot/rehearsal/domain/EnsaioTest.java` (spec atualizado em
+      2026-09-21, `/speckit-clarify`; retrabalha T008)
+- [x] T022B [US1] Persistir o tipo: migration Flyway `V3__adicionar_tipo_ensaio.sql` (coluna
+      `tipo`), campo em `EnsaioJpaEntity`, mapeamento em `PostgresRehearsalAdapter` e caso no
+      `PostgresRehearsalAdapterTest` (salvar/buscar preserva o tipo — FR-019). Exige Docker
+      para o teste de integração (depende de T022A; retrabalha T013)
+- [x] T022C [US1] Retrabalhar `criarEnsaio` (teste primeiro em `RehearsalVotingServiceTest`,
+      depois `RehearsalVotingService`): recebe o `TipoEnsaio`; `IntegranteRepositoryPort` passa
+      a `buscarTelefonesElegiveis(TipoEnsaio)` e só os convocados do tipo recebem o aviso
+      (FR-003, FR-018, FR-019); o aviso informa o tipo e instrui o formato de resposta com o
+      tipo, ex. "sim, vocal" (FR-003). Ajustar os testes T017/T018 já aprovados (depende de
+      T022A; retrabalha T017/T018/T021)
+- [ ] T022D [US1] Implementar `SheetsIntegranteAdapter implements IntegranteRepositoryPort`
+      (lê `GoogleSheetsRepository.findAllMembers()`, mantém só `ativo`, exclui "projeção" com a
+      mesma regra de `ActionDispatcher.isProjecao` e filtra pelo tipo: VOCAL = instrumento
+      vocal/voz; INSTRUMENTAL = demais; GERAL = todos — FR-003, FR-018, FR-019) em
+      `src/main/java/com/jansen/bot/rehearsal/adapters/out/SheetsIntegranteAdapter.java`, com
+      teste em `.../adapters/out/SheetsIntegranteAdapterTest.java`. O `RehearsalVotingConfig`
+      (bean do service) já existe (depende de T022C)
+- [ ] T022E [US1] Retrabalhar `registrarVoto` (teste primeiro): (a) só integrante convocado do
+      tipo do ensaio vota; líder e não convocados são ignorados em silêncio — sem registrar e
+      sem notificar (FR-020); (b) a resposta resolve o ensaio pelo integrante: um único ensaio
+      pendente → esse; mais de um → só vale se o texto indicar o tipo; sem tipo, não registra e
+      o bot pede que ele diga o tipo (FR-021, FR-022). Atualizar o contrato
+      `rehearsal-ports.md` (assinatura de `registrarVoto`) antes de codar; qualquer dúvida de
+      assinatura vira pergunta ao Breno (depende de T022C, T022D; retrabalha T019/T022)
+- [ ] T022F [P] [US1] Ensinar a IA a extrair o tipo do ensaio (pedido da líder e resposta do
+      integrante, ex. "sim, vocal"): novo campo em `ClaudeAction.ActionData` e atualização de
+      `src/main/resources/system-prompt.txt` no mesmo formato de `AGENDAR_ENSAIO`/
+      `CONFIRMAR_PRESENCA` (FR-019, FR-022). O legado já deduz o tipo pelo texto da resposta
+      da IA; esta task só formaliza o campo. Dúvida sobre o nome do campo/JSON → perguntar
 - [ ] T023 [US1] Migrar `ActionDispatcher.handleScheduleRehearsal` (`BotAction.AGENDAR_ENSAIO`)
-      para chamar `RehearsalVotingService.criarEnsaio` em vez de
-      `RehearsalService.createScheduledRehearsal` — **este é o primeiro corte do Strangler
+      para chamar `RehearsalVotingService.criarEnsaio` (com o tipo, T022F) em vez de
+      `RehearsalService.createScheduledRehearsal`; o filtro de destinatários por tipo passa a
+      viver no service/adapter (T022C/T022D) e sai do dispatcher — **este é o primeiro corte do Strangler
       Fig** (research.md D2) — em `src/main/java/com/jansen/bot/service/ActionDispatcher.java`
-      (depende de T021; rodar T001+T020 de novo logo depois)
+      (depende de T022C, T022D, T022F; rodar T001+T020 de novo logo depois)
 - [ ] T024 [US1] Migrar os cases `BotAction.CONFIRMAR_PRESENCA` e `BotAction.NEGAR_PRESENCA`
       em `ActionDispatcher.dispatch` para chamar `RehearsalVotingService.registrarVoto` em
-      vez de `RehearsalService.registerPresence`, no mesmo arquivo de T023 (depende de T022)
+      vez de `RehearsalService.registerPresence`, no mesmo arquivo de T023; a resolução do
+      ensaio (um pendente / tipo no texto / ignorar fora do escopo, FR-020 a FR-022) fica no
+      service (depende de T022E, T023)
 - [ ] T025 [US1] Rodar `./mvnw test` completo (baseline + T017-T019) e validar manualmente os
       passos 1-3 do `quickstart.md` § 4
 
@@ -176,11 +219,16 @@ cenário com <50% de sim → líder recebe a pergunta extra.
 
 ### Tests for User Story 2 ⚠️
 
+- [ ] T026A [P] [US2] Teste que falha e implementação: `RelatorioVotacao` ganha `percentualSim`
+      com uma casa decimal (ex. 3 de 8 → "37,5%"), calculado sobre o total de elegíveis do tipo
+      (FR-010, FR-018; resolve P-002) em `domain/RelatorioVotacao.java` e
+      `RelatorioVotacaoTest.java`. A fronteira de 50% continua só em `RegraDeQuorum` (D6)
 - [ ] T026 [P] [US2] Teste: `Ensaio` muda de `VOTACAO_ABERTA` para `ENCERRADA`
       automaticamente assim que o último integrante elegível vota, mesmo antes das 12h
       (FR-006) em `src/test/java/com/jansen/bot/rehearsal/domain/EnsaioTest.java`
 - [ ] T027 [P] [US2] Teste: `Ensaio.gerarRelatorio(RegraDeQuorum)` retorna
-      `RelatorioVotacao` com as contagens corretas e `abaixoDoQuorum=true` quando sim<50%,
+      `RelatorioVotacao` com as contagens corretas, calculadas só sobre os convocados do tipo
+      (FR-018), e `abaixoDoQuorum=true` quando sim<50%,
       `false` quando sim>=50% (Edge Case da fronteira de 50%) no mesmo arquivo de T026
 - [ ] T028 [P] [US2] Teste: ao encerrar a votação, `RehearsalVotingService` chama
       `NotificationPort.notificarLider` com o relatório e, se `abaixoDoQuorum`, inclui a

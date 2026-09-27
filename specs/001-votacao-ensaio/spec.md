@@ -8,6 +8,19 @@
 
 **Input**: User description: "Quero uma feature que o usuário (Lídera da banda) pssa mandar um mesnagem ao bot pedindo para marcar um ensaio em determinada hora e data. O bot pega essa infos e manda para todos os integrantes, os integrantes (usuarios também) devem responder com sim ou não e o bot avisa qunado todos responderem e marca a porcentagem. quando apenas menos de 50% dos usuários marcaram que sim (isso após todos marcarem) o sistema deve perguntar ao líder se ele irá fazer o ensaio. Quando todo marcarem, o relatorio é mandado pro Líder e ele decide a confrimação do ensaio. Dado que o líder queria remarcar o ensaio, quando a votação stá acontecedno ou se encerrou, então o sistema deve fazer uma nova votação e deixar claro que o ensaio está sendo remarcado. Dado que nem todos repsonderam depois de 12horas, quando a votação se encerrar(em 12horas), então o sistema deve notificar o usuario que não repsondeu uma hora anntes relembrando e, caso ele nainda não repsonda, devolver o relatório atualizado pro líder com ele estando como se tivese repsndido NÂO porém com uma tag não respondeu. Só lide rpode criar ensaios. Criterios de aceite: o relatório chegou ao lider ao final da votação. O usuário recebem a emsnagem de confirmação quando repsondem sim ou não. o lider pode remarcar o ensaio a qualquer momento a partir do dia que foi criado um ensaio"
 
+## Clarifications
+
+### Session 2026-09-21
+
+- Q: O total do quórum de 50% inclui só os integrantes convocados para o tipo de ensaio, ou todos os elegíveis da banda? → A: Só os convocados do tipo (o total costuma ser menor que a banda inteira).
+- Q: Quem é "a líder" havendo mais de um admin configurado? → A: Só existe um admin por enquanto; a líder é esse admin.
+- Q: Quem pode votar num ensaio? → A: Apenas integrantes dentro do escopo (tipo) daquele ensaio.
+- Q: Pode haver ensaios de tipos diferentes abertos ao mesmo tempo? → A: Sim. Vocal (integrantes com instrumento vocal), instrumental (demais integrantes, exceto projeção) e geral (todos, exceto projeção) coexistem; cada voto vale só para o ensaio a que se refere.
+- Q: A qual ensaio o bot aplica um "sim/não" quando o integrante tem mais de um ensaio aberto? → A: Com um único ensaio pendente para ele, a resposta vale para o ensaio do aviso que ele recebeu. Com mais de um pendente, o integrante MUST dizer no texto a qual ensaio se refere.
+- Q: Como o integrante indica o ensaio no texto? → A: Pelo tipo do ensaio (ex.: "sim, vocal", "não, geral"). O pedido de confirmação enviado pelo bot MUST instruir esse formato, para o integrante não errar ao escrever.
+- Q: Como a porcentagem de "sim" aparece no relatório quando a conta não é exata? → A: Com uma casa decimal (ex.: 3 de 8 aparece "37,5%").
+- Q: Se alguém fora do escopo do ensaio (ou a líder) mandar "sim/não", o bot responde? → A: Não. Ignora em silêncio, sem registrar; o bot só responde a mensagens que se encaixam nos casos de uso do integrante (ex.: pedir data de ensaio).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Líder marca um ensaio e integrantes votam (Priority: P1)
@@ -91,14 +104,14 @@ A qualquer momento a partir do dia em que o ensaio foi criado — com a votaçã
 
 - **FR-001**: O sistema MUST permitir que apenas a líder da banda solicite a criação de um ensaio (data e horário); pedidos de qualquer outro integrante MUST ser rejeitados sem criar ensaio.
 - **FR-002**: Ao receber um pedido válido de ensaio, o sistema MUST extrair a data e o horário informados pela líder e, caso não consiga interpretá-los com confiança, MUST pedir esclarecimento à líder em vez de criar o ensaio.
-- **FR-003**: Ao criar um ensaio, o sistema MUST enviar a todos os integrantes uma mensagem pedindo confirmação de presença (sim/não) para aquela data e horário.
+- **FR-003**: Ao criar um ensaio, o sistema MUST enviar a todos os integrantes uma mensagem pedindo confirmação de presença (sim/não) para aquela data e horário. A mensagem MUST informar o tipo do ensaio e instruir o formato de resposta com o tipo (ex.: "Responda SIM ou NÃO e o tipo: sim, vocal").
 - **FR-004**: O sistema MUST aceitar apenas respostas "sim" ou "não" como voto válido; qualquer outra resposta MUST ser ignorada como voto (o integrante permanece pendente).
 - **FR-005**: Ao registrar o voto de um integrante (sim ou não), o sistema MUST enviar a esse integrante uma mensagem confirmando que a resposta foi recebida e registrada.
 - **FR-006**: O sistema MUST encerrar a votação assim que todos os integrantes tiverem respondido, mesmo antes do prazo de 12 horas.
 - **FR-007**: O sistema MUST encerrar a votação automaticamente 12 horas após a criação do ensaio (ou após uma remarcação), mesmo que nem todos tenham respondido.
 - **FR-008**: Uma hora antes do encerramento das 12 horas, o sistema MUST enviar um lembrete a cada integrante que ainda não respondeu.
 - **FR-009**: Ao encerrar a votação por prazo (12 horas) com integrantes sem resposta, o sistema MUST contabilizá-los como "não" no relatório, marcados com uma tag distinta de "não respondeu" (diferenciando-os de quem recusou explicitamente).
-- **FR-010**: Ao encerrar a votação (seja por todos terem respondido, seja por prazo esgotado), o sistema MUST enviar à líder um relatório com a contagem de confirmados, recusados, não respondidos e a porcentagem de "sim" sobre o total de integrantes.
+- **FR-010**: Ao encerrar a votação (seja por todos terem respondido, seja por prazo esgotado), o sistema MUST enviar à líder um relatório com a contagem de confirmados, recusados, não respondidos e a porcentagem de "sim" sobre o total de integrantes elegíveis (FR-018), exibida com uma casa decimal (ex.: "37,5%").
 - **FR-011**: Quando a porcentagem de "sim" no relatório final for menor que 50%, o sistema MUST perguntar explicitamente à líder se o ensaio será realizado mesmo assim.
 - **FR-012**: Quando a porcentagem de "sim" no relatório final for 50% ou mais, o sistema MUST entregar o relatório à líder para que ela decida a confirmação do ensaio, sem necessariamente exigir uma resposta explícita de baixo quórum.
 - **FR-013**: O sistema MUST permitir que a líder remarque um ensaio para uma nova data/hora a qualquer momento a partir do dia em que o ensaio foi criado, independentemente de a votação estar em andamento ou já ter se encerrado.
@@ -107,11 +120,15 @@ A qualquer momento a partir do dia em que o ensaio foi criado — com a votaçã
 - **FR-016**: Um voto recebido após o encerramento da votação (relatório já entregue) MUST ser descartado sem alterar o relatório já enviado nem reabrir a votação.
 - **FR-017**: O sistema MUST reiniciar o prazo de 12 horas de votação a cada remarcação, contando a partir do momento da remarcação.
 
-- **FR-018**: O total de integrantes elegíveis de uma votação MUST ser calculado a partir do cadastro de integrantes vigente no momento (a quantidade de integrantes pode aumentar ou diminuir com o tempo, não é um número fixo), excluindo quem solicitou o ensaio (a líder), ou seja, total de integrantes menos a líder. No relatório, a soma de confirmados, recusados e não respondidos MUST ser igual ao total de elegíveis.
+- **FR-018**: O total de integrantes elegíveis de uma votação MUST ser calculado a partir do cadastro de integrantes vigente no momento (a quantidade de integrantes pode aumentar ou diminuir com o tempo, não é um número fixo), restrito ao tipo do ensaio (FR-019) e excluindo quem solicitou o ensaio (a líder). No relatório, a soma de confirmados, recusados e não respondidos MUST ser igual ao total de elegíveis.
+- **FR-019**: Todo ensaio MUST ter um tipo: **vocal** (convoca integrantes com instrumento vocal), **instrumental** (convoca os demais integrantes, exceto projeção) ou **geral** (convoca todos, exceto projeção). O pedido de confirmação (FR-003) MUST ir só aos convocados do tipo, e o quórum (FR-011/FR-012) MUST ser calculado só sobre eles.
+- **FR-020**: Somente integrantes convocados para o tipo do ensaio MUST poder votar nele; votos de quem está fora do escopo (incluindo a líder) MUST ser ignorados em silêncio: não são registrados, não alteram a votação e não geram resposta.
+- **FR-022**: Se o integrante tem exatamente um ensaio pendente, seu "sim/não" MUST valer para esse ensaio. Se tem mais de um pendente, MUST valer apenas se o texto indicar o tipo do ensaio (ex.: "sim, vocal"); caso contrário o voto não é registrado, ele permanece pendente e o bot pede que ele diga a qual ensaio está respondendo.
+- **FR-021**: Um integrante convocado para mais de um ensaio aberto (ex.: vocal e geral) MUST votar em cada um separadamente, e cada resposta conta apenas para o ensaio a que se refere.
 
 ### Key Entities
 
-- **Ensaio**: Representa um evento de ensaio marcado pela líder — data/hora atual, data/hora de criação, status da votação (aberta, encerrada), status de decisão final (confirmado, cancelado, pendente de decisão), e histórico de remarcações.
+- **Ensaio**: Representa um evento de ensaio marcado pela líder — tipo (vocal, instrumental ou geral), data/hora atual, data/hora de criação, status da votação (aberta, encerrada), status de decisão final (confirmado, cancelado, pendente de decisão), e histórico de remarcações.
 - **Integrante**: Membro da banda que pode votar em ensaios — identificação, papel (líder ou membro comum).
 - **Voto**: Resposta de um integrante a um ensaio específico — integrante, escolha (sim, não, não respondeu), timestamp da resposta (quando houver).
 - **Relatório de Votação**: Resumo gerado ao encerrar uma votação — contagem de sim/não/não-respondeu, porcentagem de confirmação, indicação se ficou abaixo do quórum de 50%.
@@ -129,7 +146,8 @@ A qualquer momento a partir do dia em que o ensaio foi criado — com a votaçã
 
 ## Assumptions
 
-- A lista de "todos os integrantes" corresponde ao conjunto de membros da banda já cadastrados/reconhecidos pelo bot; a líder não precisa especificar destinatários manualmente a cada ensaio.
+- A lista de "todos os integrantes" corresponde ao conjunto de membros da banda já cadastrados/reconhecidos pelo bot, filtrado pelo tipo do ensaio (FR-019); a líder não precisa especificar destinatários manualmente a cada ensaio.
+- Existe um único admin (a líder) por enquanto; multi-admin está fora do escopo desta especificação.
 - A líder não é contabilizada como uma das votantes no cálculo da porcentagem de "sim" — ela recebe o relatório e decide, mas não vota "sim/não" para seu próprio pedido.
 - O sistema suporta múltiplos ensaios com votações independentes ocorrendo em paralelo, cada um com seu próprio prazo de 12 horas e relatório.
 - Quando a confirmação fica abaixo de 50% e a líder decide seguir com o ensaio mesmo assim (ou cancelar), essa decisão é comunicada aos integrantes, mas o desenho detalhado dessa notificação de decisão final fica a cargo do planejamento técnico (`/speckit-plan`), não desta especificação.
