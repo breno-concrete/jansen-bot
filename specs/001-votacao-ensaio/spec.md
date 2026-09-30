@@ -125,7 +125,7 @@ A qualquer momento a partir do dia em que o ensaio foi criado — com a votaçã
 - **FR-020**: Somente integrantes convocados para o tipo do ensaio MUST poder votar nele; votos de quem está fora do escopo (incluindo a líder) MUST ser ignorados em silêncio: não são registrados, não alteram a votação e não geram resposta.
 - **FR-022**: Se o integrante tem exatamente um ensaio pendente, seu "sim/não" MUST valer para esse ensaio. Se tem mais de um pendente, MUST valer apenas se o texto indicar o tipo do ensaio (ex.: "sim, vocal"); caso contrário o voto não é registrado, ele permanece pendente e o bot pede que ele diga a qual ensaio está respondendo.
 - **FR-021**: Um integrante convocado para mais de um ensaio aberto (ex.: vocal e geral) MUST votar em cada um separadamente, e cada resposta conta apenas para o ensaio a que se refere.
-
+l
 ### Key Entities
 
 - **Ensaio**: Representa um evento de ensaio marcado pela líder — tipo (vocal, instrumental ou geral), data/hora atual, data/hora de criação, status da votação (aberta, encerrada), status de decisão final (confirmado, cancelado, pendente de decisão), e histórico de remarcações.
