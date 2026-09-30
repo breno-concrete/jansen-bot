@@ -21,6 +21,9 @@ services:
       POSTGRES_USER: jansenbot
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: jansenbot
+
+    volumes:
+      - postgres-bot-data:/var/lib/postgresql/data
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass redispassword
@@ -31,3 +34,6 @@ services:
       POSTGRES_USER: evolution
       POSTGRES_PASSWORD: evolution
       POSTGRES_DB: evolution
+
+volumes:
+    postgres-bot-data:
