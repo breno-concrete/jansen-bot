@@ -1,6 +1,7 @@
 package com.jansen.bot.rehearsal.adapters.out.persistence;
 
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.TipoEnsaio;
 import com.jansen.bot.rehearsal.domain.Voto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,10 +48,22 @@ class PostgresRehearsalAdapterTest {
     private PostgresRehearsalAdapter adapter;
 
     @Test
+    @DisplayName("FR-019: salvar + buscarPorId preservam o tipo de cada ensaio (vocal, instrumental, geral)")
+    void salvarEBuscarPorId_preservaOTipo() {
+        for (TipoEnsaio tipo : TipoEnsaio.values()) {
+            Ensaio ensaio = Ensaio.criar(tipo, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+
+            adapter.salvar(ensaio);
+
+            assertEquals(tipo, adapter.buscarPorId(ensaio.id()).orElseThrow().tipo());
+        }
+    }
+
+    @Test
     @DisplayName("salvar + buscarPorId devolvem o Ensaio com todos os campos, incluindo o histórico de remarcações")
     void salvarEBuscarPorId_preservaTodosOsCampos() {
         Ensaio salvo = Ensaio.reconstituir(
-                "e1", "2026-09-25 19:00", "Estúdio X", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
+                "e1", TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
                 Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.CONFIRMADO,
                 List.of(new Ensaio.Remarcacao("2026-09-26 20:00", Instant.parse("2026-09-20T11:00:00Z")),
                         new Ensaio.Remarcacao("2026-09-27 20:00", Instant.parse("2026-09-20T12:00:00Z"))),
@@ -80,9 +93,9 @@ class PostgresRehearsalAdapterTest {
     @Test
     @DisplayName("buscarComVotacaoAberta devolve só os ensaios com status VOTACAO_ABERTA")
     void buscarComVotacaoAberta_devolveSomenteAbertos() {
-        adapter.salvar(Ensaio.criar("2026-09-25 19:00", "A", CRIADO_EM));
+        adapter.salvar(Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "A", CRIADO_EM));
         Ensaio encerrado = Ensaio.reconstituir(
-                "encerrado", "2026-09-26 19:00", "B", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
+                "encerrado", TipoEnsaio.GERAL, "2026-09-26 19:00", "B", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
                 Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of());
         adapter.salvar(encerrado);
 
@@ -97,11 +110,11 @@ class PostgresRehearsalAdapterTest {
     @DisplayName("salvar um Ensaio com id já existente atualiza o registro, sem duplicar")
     void salvar_idExistente_atualizaSemDuplicar() {
         adapter.salvar(Ensaio.reconstituir(
-                "e2", "2026-09-25 19:00", "A", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
+                "e2", TipoEnsaio.GERAL, "2026-09-25 19:00", "A", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
                 Ensaio.Status.VOTACAO_ABERTA, Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of()));
 
         adapter.salvar(Ensaio.reconstituir(
-                "e2", "2026-09-25 19:00", "A", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
+                "e2", TipoEnsaio.GERAL, "2026-09-25 19:00", "A", CRIADO_EM, CRIADO_EM.plusSeconds(43_200),
                 Ensaio.Status.ENCERRADA, Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of()));
 
         assertEquals(Ensaio.Status.ENCERRADA, adapter.buscarPorId("e2").orElseThrow().status());
@@ -111,7 +124,7 @@ class PostgresRehearsalAdapterTest {
     @Test
     @DisplayName("T022: salvar + buscarPorId preservam os votos do Ensaio")
     void salvarEBuscarPorId_preservaOsVotos() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
         ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM.plusSeconds(60));
         ensaio.registrarVoto("11999992222", Voto.Escolha.NAO, CRIADO_EM.plusSeconds(120));
 
@@ -124,7 +137,7 @@ class PostgresRehearsalAdapterTest {
     @Test
     @DisplayName("T022: salvar de novo um Ensaio cujo voto mudou atualiza o voto, sem duplicar")
     void salvar_votoAlterado_atualizaSemDuplicar() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
         ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM.plusSeconds(60));
         adapter.salvar(ensaio);
 

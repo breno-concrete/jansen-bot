@@ -3,6 +3,7 @@ package com.jansen.bot.rehearsal.application;
 import com.jansen.bot.exception.EnsaioNaoEncontradoException;
 import com.jansen.bot.exception.NaoAutorizadoException;
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.TipoEnsaio;
 import com.jansen.bot.rehearsal.domain.Voto;
 import com.jansen.bot.rehearsal.ports.ClockPort;
 import com.jansen.bot.rehearsal.ports.IntegranteRepositoryPort;
@@ -35,17 +36,17 @@ public class RehearsalVotingService {
         this.integrantes = integrantes;
     }
 
-    /** FR-001, FR-003, FR-018. */
-    public Ensaio criarEnsaio(String telefoneSolicitante, String dataHora, String local) {
+    /** FR-001, FR-003, FR-018, FR-019. */
+    public Ensaio criarEnsaio(String telefoneSolicitante, TipoEnsaio tipo, String dataHora, String local) {
         if (!politicaDeLider.isLider(telefoneSolicitante)) {
             throw new NaoAutorizadoException("Só a líder pode criar um ensaio.");
         }
 
-        Ensaio ensaio = Ensaio.criar(dataHora, local, relogio.agora());
+        Ensaio ensaio = Ensaio.criar(tipo, dataHora, local, relogio.agora());
         repositorio.salvar(ensaio);
 
         String solicitante = PhoneUtils.normalize(telefoneSolicitante);
-        List<String> destinatarios = integrantes.buscarTelefonesElegiveis().stream()
+        List<String> destinatarios = integrantes.buscarTelefonesElegiveis(tipo).stream()
                 .filter(telefone -> !PhoneUtils.normalize(telefone).equals(solicitante))
                 .toList();
         notificacao.notificarTodos(destinatarios, mensagemDePedidoDeConfirmacao(ensaio));
@@ -70,10 +71,11 @@ public class RehearsalVotingService {
     }
 
     private String mensagemDePedidoDeConfirmacao(Ensaio ensaio) {
-        return "*Ensaio marcado*\n\n"
+        String tipo = ensaio.tipo().name().toLowerCase();
+        return "*Ensaio " + tipo + " marcado*\n\n"
                 + "Data e hora: " + ensaio.dataHora() + "\n"
                 + "Local: " + ensaio.local() + "\n\n"
                 + "Você vai estar presente?\n"
-                + "Responda *SIM* ou *NÃO*.";
+                + "Responda *SIM* ou *NÃO* e o tipo do ensaio. Exemplo: *sim, " + tipo + "*.";
     }
 }

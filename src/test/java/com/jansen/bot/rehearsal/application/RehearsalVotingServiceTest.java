@@ -3,6 +3,7 @@ package com.jansen.bot.rehearsal.application;
 import com.jansen.bot.exception.EnsaioNaoEncontradoException;
 import com.jansen.bot.exception.NaoAutorizadoException;
 import com.jansen.bot.rehearsal.domain.Ensaio;
+import com.jansen.bot.rehearsal.domain.TipoEnsaio;
 import com.jansen.bot.rehearsal.domain.Voto;
 import com.jansen.bot.rehearsal.ports.ClockPort;
 import com.jansen.bot.rehearsal.ports.IntegranteRepositoryPort;
@@ -16,7 +17,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -53,7 +56,7 @@ class RehearsalVotingServiceTest {
     @DisplayName("FR-001: criarEnsaio por quem não é líder lança NaoAutorizadoException e não persiste nem notifica")
     void criarEnsaio_solicitanteNaoLider_rejeitaSemPersistirNemNotificar() {
         assertThrows(NaoAutorizadoException.class,
-                () -> service.criarEnsaio(MEMBRO, "2026-09-25 19:00", "Estúdio X"));
+                () -> service.criarEnsaio(MEMBRO, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X"));
 
         assertTrue(repositorio.salvos.isEmpty());
         assertTrue(notificacao.paraIntegrante.isEmpty());
@@ -64,7 +67,7 @@ class RehearsalVotingServiceTest {
     @Test
     @DisplayName("FR-001/FR-003: criarEnsaio pela líder cria o Ensaio com votação aberta e o persiste")
     void criarEnsaio_lider_criaEnsaioComVotacaoAbertaEPersiste() {
-        Ensaio criado = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        Ensaio criado = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         assertEquals(Ensaio.Status.VOTACAO_ABERTA, criado.status());
         assertEquals("2026-09-25 19:00", criado.dataHora());
@@ -77,7 +80,7 @@ class RehearsalVotingServiceTest {
     @Test
     @DisplayName("FR-003/FR-018: criarEnsaio notifica todos os integrantes elegíveis, exceto a líder que pediu")
     void criarEnsaio_lider_notificaTodosOsElegiveisMenosALider() {
-        service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         assertEquals(1, notificacao.paraTodos.size());
         assertEquals(List.of(MEMBRO, MEMBRO_2), notificacao.paraTodos.get(0).telefones());
@@ -86,7 +89,7 @@ class RehearsalVotingServiceTest {
     @Test
     @DisplayName("FR-003: a mensagem pede confirmação (sim/não) e cita a data e hora do ensaio")
     void criarEnsaio_mensagemPedeConfirmacaoDaDataHora() {
-        service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         String mensagem = notificacao.paraTodos.get(0).mensagem().toLowerCase();
         assertTrue(mensagem.contains("2026-09-25 19:00"));
@@ -101,15 +104,51 @@ class RehearsalVotingServiceTest {
         service = new RehearsalVotingService(repositorio, notificacao, () -> AGORA,
                 telefone -> Set.of(LIDER).contains(telefone), integrantes);
 
-        service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         assertEquals(List.of(MEMBRO, MEMBRO_2), notificacao.paraTodos.get(0).telefones());
     }
 
     @Test
+    @DisplayName("FR-019: criarEnsaio cria o Ensaio com o tipo pedido")
+    void criarEnsaio_criaEnsaioComOTipoPedido() {
+        Ensaio criado = service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+
+        assertEquals(TipoEnsaio.VOCAL, criado.tipo());
+        assertEquals(TipoEnsaio.VOCAL, repositorio.salvos.get(0).tipo());
+    }
+
+    @Test
+    @DisplayName("FR-003/FR-019: só os convocados do tipo do ensaio recebem o pedido de confirmação")
+    void criarEnsaio_notificaSoOsConvocadosDoTipo() {
+        integrantes = new FakeIntegrantes(LIDER, MEMBRO, MEMBRO_2).comTipo(TipoEnsaio.VOCAL, LIDER, MEMBRO_2);
+        service = new RehearsalVotingService(repositorio, notificacao, () -> AGORA,
+                telefone -> Set.of(LIDER).contains(telefone), integrantes);
+
+        service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+
+        assertEquals(List.of(MEMBRO_2), notificacao.paraTodos.get(0).telefones());
+    }
+
+    @Test
+    @DisplayName("FR-003: a mensagem informa o tipo do ensaio e instrui o formato de resposta com o tipo")
+    void criarEnsaio_mensagemInformaOTipoEInstruiOFormato() {
+        for (TipoEnsaio tipo : TipoEnsaio.values()) {
+            notificacao.paraTodos.clear();
+
+            service.criarEnsaio(LIDER, tipo, "2026-09-25 19:00", "Estúdio X");
+
+            String nome = tipo.name().toLowerCase();
+            String mensagem = notificacao.paraTodos.get(0).mensagem().toLowerCase();
+            assertTrue(mensagem.contains("ensaio " + nome), "deve informar o tipo: " + nome);
+            assertTrue(mensagem.contains("sim, " + nome), "deve instruir o formato 'sim, " + nome + "'");
+        }
+    }
+
+    @Test
     @DisplayName("FR-005/US1-2: registrarVoto com SIM grava o voto no Ensaio, persiste e confirma o 'sim' a quem votou")
     void registrarVoto_sim_gravaVotoEConfirmaAoIntegrante() {
-        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        Ensaio ensaio = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.SIM);
 
@@ -122,7 +161,7 @@ class RehearsalVotingServiceTest {
     @Test
     @DisplayName("FR-005/US1-3: registrarVoto com NAO grava o voto no Ensaio, persiste e confirma o 'não' a quem votou")
     void registrarVoto_nao_gravaVotoEConfirmaAoIntegrante() {
-        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        Ensaio ensaio = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.NAO);
 
@@ -145,7 +184,7 @@ class RehearsalVotingServiceTest {
     @Test
     @DisplayName("T022: o mesmo integrante votando de novo substitui o voto anterior e a nova resposta também é confirmada")
     void registrarVoto_repetido_substituiOVotoAnterior() {
-        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        Ensaio ensaio = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.SIM);
         service.registrarVoto(ensaio.id(), MEMBRO, Voto.Escolha.NAO);
@@ -157,7 +196,7 @@ class RehearsalVotingServiceTest {
     @Test
     @DisplayName("data-model.md: o voto é gravado com o telefone normalizado, mesmo que chegue formatado")
     void registrarVoto_normalizaOTelefoneDoIntegrante() {
-        Ensaio ensaio = service.criarEnsaio(LIDER, "2026-09-25 19:00", "Estúdio X");
+        Ensaio ensaio = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
 
         service.registrarVoto(ensaio.id(), "(11) 99999-1111", Voto.Escolha.SIM);
 
@@ -171,15 +210,23 @@ class RehearsalVotingServiceTest {
     // ---- fakes ----
 
     static class FakeIntegrantes implements IntegranteRepositoryPort {
-        private final List<String> telefones;
+        private final Map<TipoEnsaio, List<String>> porTipo = new EnumMap<>(TipoEnsaio.class);
 
+        /** Mesmos telefones para qualquer tipo. */
         FakeIntegrantes(String... telefones) {
-            this.telefones = List.of(telefones);
+            for (TipoEnsaio tipo : TipoEnsaio.values()) {
+                porTipo.put(tipo, List.of(telefones));
+            }
+        }
+
+        FakeIntegrantes comTipo(TipoEnsaio tipo, String... telefones) {
+            porTipo.put(tipo, List.of(telefones));
+            return this;
         }
 
         @Override
-        public List<String> buscarTelefonesElegiveis() {
-            return telefones;
+        public List<String> buscarTelefonesElegiveis(TipoEnsaio tipo) {
+            return porTipo.get(tipo);
         }
     }
 

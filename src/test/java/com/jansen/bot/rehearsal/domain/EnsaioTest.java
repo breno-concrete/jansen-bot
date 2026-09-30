@@ -10,6 +10,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EnsaioTest {
@@ -17,9 +18,47 @@ class EnsaioTest {
     private static final Instant CRIADO_EM = Instant.parse("2026-09-20T10:00:00Z");
 
     @Test
+    @DisplayName("FR-019: o tipo informado (vocal, instrumental ou geral) é preservado no ensaio criado")
+    void criar_preservaOTipoInformado() {
+        for (TipoEnsaio tipo : TipoEnsaio.values()) {
+            Ensaio ensaio = Ensaio.criar(tipo, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+
+            assertEquals(tipo, ensaio.tipo());
+        }
+    }
+
+    @Test
+    @DisplayName("FR-019: o tipo do ensaio reconstituído (ex.: lido da persistência) é preservado")
+    void reconstituir_preservaOTipo() {
+        Ensaio ensaio = Ensaio.reconstituir("id-1", TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X",
+                CRIADO_EM, CRIADO_EM.plus(Duration.ofHours(12)), Ensaio.Status.VOTACAO_ABERTA,
+                Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of());
+
+        assertEquals(TipoEnsaio.VOCAL, ensaio.tipo());
+    }
+
+    @Test
+    @DisplayName("FR-019: o tipo é obrigatório, criar e reconstituir rejeitam tipo nulo")
+    void tipoNulo_ehRejeitado() {
+        assertThrows(NullPointerException.class,
+                () -> Ensaio.criar(null, "2026-09-25 19:00", "Estúdio X", CRIADO_EM));
+        assertThrows(NullPointerException.class,
+                () -> Ensaio.reconstituir("id-1", null, "2026-09-25 19:00", "Estúdio X", CRIADO_EM,
+                        CRIADO_EM.plus(Duration.ofHours(12)), Ensaio.Status.VOTACAO_ABERTA,
+                        Ensaio.DecisaoFinal.PENDENTE, List.of(), List.of()));
+    }
+
+    @Test
+    @DisplayName("FR-019: TipoEnsaio tem exatamente VOCAL, INSTRUMENTAL e GERAL")
+    void tipoEnsaio_valores() {
+        assertEquals(List.of("VOCAL", "INSTRUMENTAL", "GERAL"),
+                java.util.Arrays.stream(TipoEnsaio.values()).map(Enum::name).toList());
+    }
+
+    @Test
     @DisplayName("FR-007: ensaio criado nasce com votação aberta")
     void criar_nasceComVotacaoAberta() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
 
         assertEquals(Ensaio.Status.VOTACAO_ABERTA, ensaio.status());
     }
@@ -27,7 +66,7 @@ class EnsaioTest {
     @Test
     @DisplayName("FR-007: prazo de votação é criadoEm + 12h")
     void criar_prazoDeVotacaoEhCriadoEmMais12Horas() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
 
         assertEquals(CRIADO_EM, ensaio.criadoEm());
         assertEquals(CRIADO_EM.plus(Duration.ofHours(12)), ensaio.prazoVotacaoEm());
@@ -36,7 +75,7 @@ class EnsaioTest {
     @Test
     @DisplayName("FR-007: ensaio criado não tem remarcações no histórico")
     void criar_historicoDeRemarcacoesVazio() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
 
         assertTrue(ensaio.historicoRemarcacoes().isEmpty());
     }
@@ -44,7 +83,7 @@ class EnsaioTest {
     @Test
     @DisplayName("data-model.md: dataHora e local informados são preservados, id é gerado e decisão final é PENDENTE")
     void criar_preservaDadosInformadosEGeraId() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
 
         assertEquals("2026-09-25 19:00", ensaio.dataHora());
         assertEquals("Estúdio X", ensaio.local());
@@ -56,7 +95,7 @@ class EnsaioTest {
     @Test
     @DisplayName("data-model.md: local não informado (null) vira 'A definir'")
     void criar_localNuloViraADefinir() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", null, CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", null, CRIADO_EM);
 
         assertEquals("A definir", ensaio.local());
     }
@@ -64,7 +103,7 @@ class EnsaioTest {
     @Test
     @DisplayName("T022: registrarVoto guarda o voto do integrante com o horário da resposta")
     void registrarVoto_guardaOVoto() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
         Instant resposta = CRIADO_EM.plusSeconds(60);
 
         ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, resposta);
@@ -75,7 +114,7 @@ class EnsaioTest {
     @Test
     @DisplayName("T022: o segundo voto do mesmo integrante substitui o primeiro (resposta e horário)")
     void registrarVoto_repetido_substituiOAnterior() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
         Instant depois = CRIADO_EM.plusSeconds(120);
 
         ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM.plusSeconds(60));
@@ -87,7 +126,7 @@ class EnsaioTest {
     @Test
     @DisplayName("T022: votos de integrantes diferentes coexistem")
     void registrarVoto_integrantesDiferentes_coexistem() {
-        Ensaio ensaio = Ensaio.criar("2026-09-25 19:00", "Estúdio X", CRIADO_EM);
+        Ensaio ensaio = Ensaio.criar(TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X", CRIADO_EM);
 
         ensaio.registrarVoto("11999991111", Voto.Escolha.SIM, CRIADO_EM);
         ensaio.registrarVoto("11999992222", Voto.Escolha.NAO, CRIADO_EM);
