@@ -8,6 +8,17 @@
 > **Revisão de 25/09/2026.** Reescrito para a agenda nova (blocos de manhã,
 > ensaio de terça encerrado, noites encurtadas para proteger 8h30 de sono).
 > A ordem da Season 1 mudou: testes subiram para as semanas 3–4.
+>
+> **Revisão de 27/09/2026.** Teste de retenção de 10 minutos em todos os dias.
+> A semana 1 foi replanejada a partir de onde você chegou em 27/09 (a semana 1
+> original feita até a quinta). O que faltava da semana 2 original foi puxado
+> para frente, e a semana 2 passou a ser a stack completa em compose, com a
+> Evolution API. As semanas 3 a 8 mantêm as datas.
+>
+> **Revisão de 29/09/2026.** Regra nova: **metade Docker, metade projeto** (ver
+> "Regra de divisão" na Season 1). De quarta 30/09 em diante, a semana 1 está
+> escrita em durações, não em horários: você encaixa os blocos na noite ou onde
+> der. As semanas 2+ seguem a regra quando forem replanejadas.
 
 ---
 
@@ -48,10 +59,10 @@
 | Manhã 05:40–06:30 | Ter, Qua, Qui, Sex | 50min | **Pico** — teoria e raciocínio novo |
 | Sexta 07:30–09:00 | Sex | 90min | **Longo** — fecha o entregável da semana |
 | Noite A 18:45–19:30 | Seg, Ter, Qua, Qui | 45min | **Baixa fricção** — LeetCode + Anki |
-| Noite B 20:00–20:45 | Seg, Ter, Qua, Qui | 45min | **Execução** — mão na massa |
+| Noite B 20:00–20:45 | Seg, Ter, Qua, Qui | 45min | **Execução** — 10min de retenção + mão na massa |
 | Sábado 08:45–09:45 | Sáb | 60min | LeetCode longo |
-| Sábado 13:00–14:00 | Sáb | 60min | Margem ou aprofundamento |
-| Domingo 13:30–14:45 | Dom | 75min | Ritual (20min) + margem |
+| Sábado 13:00–14:00 | Sáb | 60min | Retenção (10min) + margem ou aprofundamento |
+| Domingo 13:30–14:45 | Dom | 75min | Ritual (20min) + retenção (10min) + margem |
 
 **Total: 14h05/semana**, sendo **4h10 em horário de pico**. A versão anterior
 tinha 10h15 de blocos úteis, todos à noite. São ~4h a mais por semana, e a
@@ -81,7 +92,10 @@ na véspera. Ler antes de abrir o editor, nunca durante.
   pronto.
 
 **Noite B (20:00–20:45) — Seg a Qui**
-Mão na massa na tarefa da semana. Execução do que a manhã definiu. Se você se
+- `20:00–20:10` Teste de retenção (regra no topo da Season 1).
+- `20:10–20:45` Mão na massa na tarefa da semana.
+
+Execução do que a manhã definiu. Se você se
 pegar decidindo arquitetura aqui, a manhã falhou — anote isso e corrija amanhã.
 
 **Sexta manhã**
@@ -100,6 +114,10 @@ LeetCode (~2h05/semana) + mão na massa (~8h) = ~72% do tempo em código.
 Teoria (~3h20 de manhã) = ~24%. Anki e ritual fecham o resto. A teoria pesa um
 pouco mais que na versão anterior, de propósito: ela agora acontece no horário
 em que gruda, então rende mais por minuto investido.
+
+Desde 27/09, cerca de 1h por semana (10min por dia) vai para o teste de
+retenção. Ele sai da mão na massa e da margem, sem aumentar o total de horas.
+Continua sendo tempo em código, porque o teste é refazer o trabalho de memória.
 
 ---
 
@@ -141,9 +159,9 @@ pivotar) e a spec do MVP pronta para construir na Season 2.
 
 | Semana | Datas | Tema | Entregável |
 |---|---|---|---|
-| 0 | 26–27/09 | Setup | Ambiente pronto, teoria da semana 1 carregada |
-| 1 | 28/09–04/10 | Docker do zero | Container escrito à mão, explicável linha a linha |
-| 2 | 05–11/10 | Docker que você opera | `docker compose up` sobe app + banco do zero |
+| 0 | 26–27/09 | Setup | ✅ Feito. Adiantou a semana 1 original até a quinta |
+| 1 | 28/09–04/10 | Docker no projeto real + US1 andando | Dockerfile multi-stage, banco com volume, README + T022D auditada e T022E escrita por você |
+| 2 | 05–11/10 | Stack completa em compose | `docker compose up` sobe bot + banco + Evolution do zero e o bot responde no WhatsApp |
 | 3 | 12–18/10 | Testes de unidade do zero | Suíte escrita por você, verde |
 | 4 | 19–25/10 | Testes de integração | Testcontainers rodando, unidade separada de integração |
 | 5 | 26/10–01/11 | Deploy real, parte 1 | Algo seu no ar, acessível por outra pessoa |
@@ -153,159 +171,387 @@ pivotar) e a spec do MVP pronta para construir na Season 2.
 
 ---
 
-## Semana 0 — Setup · 26–27/09
+## Regra de divisão: metade Docker, metade projeto
 
-Dois dias para carregar a teoria e preparar o ambiente, de modo que a segunda-feira
-(que não tem manhã) possa executar em vez de decidir.
+Vale de 30/09 em diante. Todo dia tem duas metades de **tempo igual**:
 
-**Sábado 26/09**
-- `08:45–09:45` LeetCode: #1 Two Sum, #2 Contains Duplicate, #3 Valid Anagram.
-  Três fáceis de propósito — o objetivo é abrir a corrente, não provar nada.
-- `13:00–14:00` Teoria Docker:
-    - Imagem vs container: imagem é template parado, container é instância rodando.
-    - Layers: cada instrução do Dockerfile vira uma camada, e camadas são
-      cacheadas — por isso a *ordem* importa (o que muda menos vai primeiro).
-    - Base image para Java: `eclipse-temurin:21-jre`, não `-jdk`. O JDK é maior e
-      só é necessário para *buildar*, não para *rodar*.
-    - Rodar `mvn clean package` no bot da banda e confirmar que o jar existe.
-- **Pronto quando:** o jar está em `target/` e você consegue explicar, em voz
-  alta, por que a ordem das instruções afeta o tempo de build.
+1. **Docker (ou o tema da semana):** teoria, retenção e prática do jeito que a
+   semana descreve, sempre no bot da banda, nunca em projeto de brinquedo.
+2. **Projeto:** marcar checkboxes do `specs/001-votacao-ensaio/tasks.md`, **na
+   ordem do arquivo**, sem pular dependência. Você escreve, Claude audita
+   (`/revisa-meu-codigo`: plano → testes Red → implementação Green). A task só
+   vira `[x]` depois da auditoria aprovada e da suíte inteira verde.
 
-**Domingo 27/09**
-- `13:30–13:50` Ritual: criar o deck de Anki "Docker". Escrever numa linha, no
-  papel, o alvo de segunda-feira.
-- `13:50–14:45` Instalar ou atualizar o Docker Desktop. Rodar `docker run
-  hello-world`.
-- **Pronto quando:** `docker --version` responde e o hello-world roda.
-- **Leve:** começar *The Mom Test* no trajeto (a partir de segunda).
+O dia é escrito em **durações, não em horários**. Encaixe os blocos onde der
+(noite, direto, fim de semana). O que não cabe no dia passa para o dia seguinte
+**na mesma metade**: projeto atrasado não come tempo de Docker, e vice-versa.
+
+LeetCode e Anki ficam fora das duas metades, como extras. Se o dia apertar, eles
+são os primeiros a sair.
 
 ---
 
-## Semana 1 — Docker do zero · 28/09–04/10
+## Teste de retenção diário
 
-Escrever um `Dockerfile` à mão, **sem IA gerar**, e entender cada linha.
+Vale para **todos os dias** da Season 1, inclusive sábado e domingo. Dura 10
+minutos. É a primeira coisa do bloco de mão na massa, antes de começar a tarefa
+nova.
 
-**Segunda 28/09** *(sem manhã — execução pura)*
+**Como fazer:**
+1. Sem olhar nada (arquivo, histórico do terminal, chat, anotação), refazer do
+   zero o que foi feito na sessão anterior: reescrever o arquivo ou o comando, ou
+   explicar o conceito em voz alta como se fosse para outra pessoa.
+2. Cronometrar.
+3. Só então abrir o original e comparar.
+4. Anotar no caderno onde hesitou ou errou, de forma específica ("pus a imagem
+   antes do `-e`"), nunca vaga ("preciso revisar Docker").
+5. O que você errou vira card de Anki na Noite A do dia seguinte.
+
+Se acertar o mesmo item três dias seguidos sem hesitar, ele sai da rotação e
+entra o próximo. O alvo de cada dia já está escrito no cronograma abaixo.
+
+**Onde acontece:**
+
+| Dia | Horário | Observação |
+|---|---|---|
+| Seg a Qui | `20:00–20:10` | Início da Noite B. A execução passa para `20:10–20:45` |
+| Sexta | Início do bloco de raciocínio ou do bloco longo | Vira a **retenção semanal**: refazer do zero o entregável principal da semana, não só o da véspera |
+| Sábado | `13:00–13:10` | Início da margem |
+| Domingo | `13:50–14:00` | Logo depois do ritual |
+
+---
+
+## Semana 0 — Setup · 26–27/09 ✅
+
+Fechada, e passou do alvo. Em 26–27/09 você já fez o que a semana 1 original
+previa até a quinta:
+
+- Dockerfile escrito à mão (`FROM`, `WORKDIR`, `COPY`, `EXPOSE`, `ENTRYPOINT`),
+  com comentários. Dois comentários ainda estão errados e são corrigidos na
+  segunda.
+- `docker build` e `docker run` funcionando. Uma imagem gera vários containers,
+  e isso foi provado com dois `docker run`.
+- Três erros reais anotados e resolvidos, cada um com previsão antes de rodar:
+
+| Erro | Causa | Correção |
+|---|---|---|
+| `Connection refused` em `localhost:5432` | Sem `BOT_DB_URL`, o Spring usou o padrão; `localhost` no container é o próprio container | `-e BOT_DB_URL=...postgres-bot...` |
+| `UnknownHostException: postgres-bot` | O bot estava na rede `bridge` padrão, que não resolve nome, e o Postgres em outra rede | `--network jansen-bot_default` |
+| (evitado) senha vazia | O padrão de `BOT_DB_PASSWORD` é vazio; o Postgres espera `postgres` | `-e BOT_DB_PASSWORD=postgres` |
+
+- O bot ficou de pé, conectado ao `postgres-bot` **pelo nome do serviço**.
+
+Conferir no ritual de domingo: LeetCode #1–3 e o deck de Anki "Docker" foram
+feitos? Se não, entram na margem de sábado 03/10.
+
+---
+
+## Semana 1 — Docker no projeto real + US1 andando · 28/09–04/10
+
+**Duas frentes, um projeto só.** Todo exercício de Docker desta semana é feito
+no bot da banda, com os dados do spec-001 (ensaio, voto, tipo). Em paralelo, o
+spec-001 anda na ordem do `tasks.md`: **T022D** (já escrita, você audita),
+**T022E** (você escreve do zero) e, se sobrar tempo no domingo, o plano da
+**T022F**. Desde 30/09 o projeto tem metade do tempo de cada dia (ver "Regra de
+divisão").
+
+**Como as tasks do projeto andam: você escreve, Claude audita
+(`/revisa-meu-codigo`).** Escrever sozinho fixa mais, e custa mais tempo. Cada
+task passa por três auditorias,
+para o erro ser pego cedo:
+1. **Plano** (5 min): em 3–5 linhas, quais FR a task cobre, quais testes você vai
+   escrever e quais arquivos vai tocar. `/revisa-meu-codigo T022E plano`.
+2. **Testes (Red):** escrever os testes, ver falharem pelo motivo certo.
+   `/revisa-meu-codigo T022E testes`.
+3. **Implementação (Green):** fazer passar, com a suíte inteira verde.
+   `/revisa-meu-codigo T022E implementação`.
+
+A auditoria aponta o problema e dá uma pista. A correção é sua. Código pronto só
+se você pedir, ou depois de duas tentativas sem sair do lugar.
+
+A exceção desta semana é a **T022D**: o código já existe no repositório (adapter
+e 4 testes), escrito antes deste plano. Nela os papéis se invertem, e você
+audita. Só aprove quando souber dizer qual FR cada teste cobre e explicar cada
+método com suas palavras.
+
+**Raça, sim; sono, não.** Esta semana usa cada minuto dos blocos, inclusive as
+margens de sábado e domingo. O que ela não usa é a noite depois das 20:45.
+Cortar sono para render mais é a falha silenciosa que derruba o plano inteiro
+na terceira semana.
+
+**Preparar no domingo 27/09, antes de dormir (5 min):**
+- Deixar o Docker Desktop configurado para abrir junto com o Windows.
+- Escrever no papel o alvo de segunda: "`--env-file` + comentários do Dockerfile".
+
+---
+
+**Segunda 28/09** *(sem manhã — execução pura)* · ✅ parcial: comentários do
+Dockerfile corrigidos; o `--env-file` ficou para terça e foi feito lá.
 - `18:45–19:10` LeetCode #4 Group Anagrams.
-- `19:10–19:30` Anki: 2 cards da teoria de sábado (imagem vs container; por que
-  a ordem das layers importa).
-- `20:00–20:45` Criar o `Dockerfile` no repo do bot da banda. Escrever você
-  mesmo `FROM`, `WORKDIR` e `COPY` (copiando o jar gerado para dentro da
-  imagem). Comentar cada linha com suas palavras.
-- **Pronto quando:** `docker build -t band-bot .` termina sem erro. Não precisa
-  rodar ainda — só buildar.
-- **Erro comum:** esquecer de buildar o jar antes, e o `COPY` falhar porque o
-  arquivo não existe. Se acontecer, é sinal de que você entendeu a ordem certa:
-  build da aplicação vem antes do build da imagem.
+- `19:10–19:30` Anki: 4 cards de 27/09 — Dockerfile vs imagem vs container;
+  opções do `docker run` antes da imagem (o que vem depois vira argumento do
+  `ENTRYPOINT`); rede `bridge` padrão sem DNS vs rede criada com DNS;
+  `Connection refused` vs `UnknownHostException`.
+- `20:00–20:10` **Retenção:** sem olhar, reescrever o `docker run` que subiu o
+  bot em 27/09 (rede, as duas variáveis, `--rm`, imagem por último).
+- `20:10–20:35` Trocar os `-e` por `--env-file .env`. Primeiro, colocar no `.env`
+  as variáveis que o bot lê (`BOT_DB_URL`, `BOT_DB_USER`, `BOT_DB_PASSWORD`).
+  Hoje ele só tem `POSTGRES_*`, que o bot ignora.
+- `20:35–20:45` Reescrever com suas palavras os comentários do `COPY` (copia um
+  arquivo, não uma pasta) e do `ENTRYPOINT` (roda no `docker run`, não no build).
+- **Pronto quando:** o bot sobe com `--env-file` na rede `jansen-bot_default`, e
+  os cinco comentários do Dockerfile estão corretos.
+- **Erro comum:** colocar no `.env` o `BOT_DB_URL` com `localhost`. Dentro do
+  container, `localhost` é o próprio container: é o erro 1 de 27/09 de novo.
 
 **Terça 29/09**
-- `05:40–06:30` Teoria: `RUN` roda **durante o build** (ex: instalar algo);
-  `CMD` é o comando padrão ao **rodar**, mas pode ser sobrescrito; `ENTRYPOINT`
-  é o comando fixo que sempre roda (e o `CMD`, se existir, vira argumento dele).
-  Para Java, o padrão é `ENTRYPOINT` com `java -jar`. Escrever o `ENTRYPOINT`
-  do seu jeito, sem copiar exemplo pronto.
+- `05:40–06:30` Teoria: porta publicada vs rede interna. Por que o bot acha o
+  banco em `postgres-bot:5432` e você, do Windows, acha o mesmo banco em
+  `localhost:5432`. O que o `ports: "5432:5432"` do compose faz de verdade, e o
+  que acontece se outro Postgres na sua máquina já estiver usando a 5432.
 - `18:45–19:10` LeetCode #5 Top K Frequent Elements.
-- `19:10–19:30` Anki: RUN vs CMD vs ENTRYPOINT.
-- `20:00–20:45` `docker build` de novo, depois `docker run`. **Deixe dar erro.**
-  Provavelmente vai faltar variável de ambiente, porta, ou conexão com algo
-  externo — é esperado, não é fracasso.
-- **Pronto quando:** você tem pelo menos um erro real anotado: mensagem exata +
-  sua hipótese do que causou.
+- `19:10–19:30` Anki: porta publicada vs rede interna (um card com a frase "de
+  dentro da rede é o nome do serviço; de fora é localhost + porta publicada").
+- `20:00–20:10` **Retenção:** explicar em voz alta a diferença entre a rede
+  `bridge` padrão e uma rede criada (o "cachorro chamado Cachorro"). Escrever o
+  comando que lista as redes e o que mostra quem está dentro de cada uma.
+- `20:10–20:45` Conectar no `postgres-bot` pelo DBeaver ou `psql` e **ler o
+  banco do projeto**: `flyway_schema_history` (quais migrations rodaram: V1, V2,
+  V3?), a tabela de ensaio (onde está a coluna `tipo` da V3?) e a de voto.
+  Comparar o que você vê com o `data-model.md` do spec-001.
+- **Pronto quando:** você sabe dizer quais migrations rodaram e em que tabela e
+  coluna o tipo do ensaio (VOCAL/INSTRUMENTAL/GERAL) fica guardado.
+- ✅ **Feito em 29/09** (sem LeetCode e sem Anki; `--env-file` de segunda
+  incluído). V1, V2 e V3 rodaram; o tipo fica em `ensaio.tipo VARCHAR(32) NOT
+  NULL`. Achados: o `data-model.md` está desatualizado (virou **P-028**, resolve
+  com a T022E), e a V3 rodou no banco sem estar no git. Erros para o caderno:
+  `docker ps` não tem `--network`; faltou o `run`; entrou no banco `postgres` em
+  vez de `jansenbot`.
 
-**Quarta 30/09**
-- `05:40–06:30` Raciocínio (sem teoria nova): ler o erro de ontem e formular por
-  escrito as três hipóteses mais prováveis —
-  (1) variável de ambiente que existia no `.env` local mas o container não
-  enxerga sozinho, e precisa vir com `--env-file` ou `-e`;
-  (2) porta não exposta — falta `EXPOSE` no Dockerfile e `-p` no `docker run`;
-  (3) endereço de serviço externo (banco, Evolution API) apontando para
-  `localhost`, que dentro do container não é o host, é o próprio container.
-  Ordenar por probabilidade antes de testar qualquer uma.
-- `18:45–19:10` LeetCode #6 🔺 Product of Array Except Self.
-- `19:10–19:30` Anki.
-- `20:00–20:45` Testar as hipóteses 1 e 2, uma de cada vez.
-- **Pronto quando:** pelo menos uma hipótese confirmada ou descartada **com
-  evidência** — não com impressão.
+**A partir daqui, durações em vez de horários** (regra de 29/09). Cada dia tem
+a metade **Docker** e a metade **Projeto**, com o mesmo tempo. LeetCode e Anki
+são extras, fora das metades.
 
-**Quinta 01/10**
-- `05:40–06:30` Teoria: rede do container. Por que `localhost` dentro do
-  container é o próprio container, o que é a rede bridge default, e o que
-  `host.docker.internal` resolve.
-- `18:45–19:10` LeetCode #7 🔺 Longest Consecutive Sequence.
-- `19:10–19:30` Anki: o card mais importante da semana é este.
-- `20:00–20:45` Aplicar e fechar os erros restantes.
-- **Pronto quando:** `docker ps` mostra o container de pé por mais de 60
-  segundos sem crashar. Tudo bem se a aplicação ainda não funcionar 100%.
+**Quarta 30/09** · Docker ~1h35 · Projeto ~1h35
+- **Docker**
+  - `50 min` Teoria: volumes. Bind mount vs named volume; o que persiste e o
+    que evapora quando o container morre. E o contraste que fecha o raciocínio:
+    o **Testcontainers** faz o oposto de propósito, com um banco descartável que
+    nasce e morre a cada teste. Por que um teste quer isso e a produção não?
+  - `10 min` **Retenção:** sem olhar, escrever como conectar no Postgres de
+    fora (host, porta, usuário, banco) e explicar por que o host é `localhost` e
+    não `postgres-bot`. Bônus: o comando `psql` de dentro do container, e por
+    que ali não precisa de host nem porta.
+  - `20 min` Volume nomeado no `postgres-bot`. Inserir uma linha de ensaio à
+    mão, rodar `docker compose down` e `up`, e conferir se ela continua lá.
+  - `15 min` Rodar o `PostgresRehearsalAdapterTest` e, **em outro terminal ao
+    mesmo tempo**, rodar `docker ps` algumas vezes. Ver o container do
+    Testcontainers nascer, o teste rodar e o container sumir.
+  - **Pronto quando:** a linha de ensaio sobrevive ao `down`/`up`, e você viu
+    com os próprios olhos o container efêmero do teste aparecer e desaparecer.
+- **Projeto: T022D, parte 1 (você audita)**
+  - `15 min` Commitar o que já está `[x]` (T022A–T022C). A V3, o
+    `TipoEnsaio.java` e as mudanças no service ainda estão fora do git: hoje só
+    existem na sua máquina (descoberto em 29/09). Use o `git status` para separar
+    o que é da T022A–C do que é da T022D (adapter e teste dela ficam para
+    amanhã). Rode `./mvnw test` antes de commitar.
+  - `80 min` Ler o `SheetsIntegranteAdapter` e os 4 testes. Para cada teste,
+    escrever qual FR ele cobre (FR-003, FR-018, FR-019) e explicar cada método
+    do adapter com suas palavras.
+  - **Pronto quando:** você tem, no papel, uma linha "teste → FR" para os 4
+    testes, e uma lista do que não entendeu ou achou suspeito.
+- **Extras:** LeetCode #6 🔺 Product of Array Except Self · Anki: bind mount vs
+  named volume; banco persistente (produção) vs banco descartável (teste).
 
-**Sexta 02/10**
-- `05:40–06:30` **Teste de retenção.** Mover o Dockerfile para outro lugar (sem
-  apagar, só tirar da vista) e reescrever do zero, cronometrando. Comparar o
-  tempo com a primeira vez.
-- `07:30–07:55` LeetCode #8 Valid Palindrome.
-- `07:55–09:00` Escrever um README curto no repo: comando de build, comando de
-  run, e — separado — onde você hesitou no teste de retenção. Anotar específico
-  ("não lembrei se COPY vinha antes ou depois de WORKDIR"), nunca vago
-  ("preciso estudar mais Docker").
-- **Pronto quando:** o Dockerfile novo builda igual ao antigo, você explica cada
-  linha em voz alta sem olhar a tela, e outra pessoa conseguiria rodar seu
-  container só lendo o README.
+**Quinta 01/10** · Docker ~1h35 · Projeto ~1h35
+- **Docker**
+  - `50 min` Teoria: multi-stage build. Por que buildar com JDK e rodar com
+    JRE em estágios separados encolhe a imagem, e por que isso acaba com o passo
+    manual de rodar o `mvn package` antes do `docker build`. Pergunta-guia: o
+    que o `COPY --from` copia, e de onde?
+  - `10 min` **Retenção:** explicar o que acontece com os dados num `down` e
+    num `down -v`. Escrever onde o volume é declarado no compose (nos dois
+    lugares).
+  - `35 min` Reescrever o Dockerfile em multi-stage. Anotar o tamanho da imagem
+    antes (`docker images`) e depois.
+  - **Pronto quando:** a imagem nova builda **sem** você rodar `mvn package`
+    antes, e você anotou o antes e o depois em MB.
+  - **Erro comum:** o build do Maven dentro do Docker roda os testes, e o teste
+    do Testcontainers precisa de Docker, que não existe dentro do build. Se o
+    build travar ou falhar nesse teste, descubra por quê antes de pular os
+    testes.
+- **Projeto: T022D, parte 2 + T022E plano**
+  - `50 min` Rodar os testes da T022D. Quebrar de propósito uma regra do adapter
+    (ex.: deixar passar "projeção") e ver qual teste pega. Desfazer. Levar a
+    lista de suspeitas de ontem para `/revisa-meu-codigo T022D`. Aprovar, marcar
+    `[x]` no `tasks.md` e commitar.
+  - `45 min` T022E, plano: ler FR-020 a FR-022 no `spec.md` e escrever, em 3–5
+    linhas, quais FR a task cobre, quais testes você vai escrever e quais
+    arquivos vai tocar. `/revisa-meu-codigo T022E plano`.
+  - **Pronto quando:** T022D `[x]` e commitada; plano da T022E auditado.
+- **Extras:** LeetCode #7 🔺 Longest Consecutive Sequence · Anki: multi-stage (o
+  que fica no estágio de build e o que vai para a imagem final).
 
-**Fim de semana 03–04/10**
-- `Sáb 08:45–09:45` LeetCode #9 3Sum, #10 Container With Most Water.
-- `Sáb 13:00–14:00` Margem: recuperar o que escorregou, ou aprofundar.
-- `Dom 13:30–13:50` Ritual semanal.
+**Sexta 02/10** · Docker ~1h20 · Projeto ~1h20
+- **Docker**
+  - `50 min` **Retenção semanal.** Tirar da vista o Dockerfile multi-stage e o
+    comando `docker run` completo. Reescrever os dois do zero, cronometrando.
+    Comparar com o original e anotar cada hesitação.
+  - `30 min` README curto no repo: comando de build, comando de run (com
+    `--env-file` e `--network`) e, separado, onde você hesitou na retenção
+    semanal, de forma específica.
+  - **Pronto quando:** o Dockerfile reescrito builda igual ao original, e outra
+    pessoa conseguiria rodar o container só lendo o README.
+- **Projeto: T022E, testes (Red)**
+  - `15 min` Resolver a **P-028** do `pendencias.md`: acrescentar o `tipo` na
+    seção Ensaio do `data-model.md` e corrigir a linha 66 (a tabela `voto` já
+    existe, V2). Você escreve, Claude revisa.
+  - `10 min` Atualizar a assinatura de `registrarVoto` no contrato
+    `contracts/rehearsal-ports.md` **antes** do código, como a task pede.
+  - `55 min` Escrever os testes no `RehearsalVotingServiceTest`: (a) só
+    convocado do tipo vota, líder e não convocados ignorados em silêncio
+    (FR-020); (b) com mais de um ensaio pendente, a resposta só vale se disser o
+    tipo, senão o bot pergunta (FR-021, FR-022). Vê-los falhar.
+    `/revisa-meu-codigo T022E testes`.
+  - **Pronto quando:** P-028 resolvida; existe um teste para cada regra (a) e
+    (b), todos vermelhos pelo motivo certo, e a auditoria dos testes não tem
+    item grave aberto.
+- **Extras:** LeetCode #8 Valid Palindrome.
+
+**Sábado 03/10** · Docker ~1h · Projeto ~1h
+- **Docker**
+  - `10 min` **Retenção:** explicar em voz alta, sem olhar, as três partes da
+    história da carta (endereço, caminho, chave) e qual erro cada uma gera.
+  - `50 min` Fechar o que ficou aberto no placar da semana. Se nada ficou, ler
+    o `docker-compose.yml` linha a linha e anotar ao lado o que você **acha**
+    que cada chave faz, sem pesquisar. É a preparação da semana 2: lá você
+    confere as apostas.
+- **Projeto: T022E, implementação (Green)**
+  - `60 min` Fazer os testes de ontem passarem no `RehearsalVotingService`, com
+    a menor mudança possível. Rodar a suíte inteira, incluindo o
+    `RehearsalServiceCharacterizationTest` (a rede de segurança do legado).
+    `/revisa-meu-codigo T022E implementação` e correções.
+  - **Pronto quando:** T022E aprovada, marcada `[x]` no `tasks.md` e commitada.
+- **Extras:** LeetCode #9 3Sum, #10 Container With Most Water.
+
+**Domingo 04/10** · Docker ~45 min · Projeto ~45 min
+- `20 min` Ritual semanal (fora das metades; conferir também: LeetCode #1–3 e o
+  deck de Anki "Docker" da semana 0 foram feitos?).
+- **Docker**
+  - `10 min` **Retenção:** escrever, sem olhar, o Dockerfile multi-stage.
+  - `35 min` Folga da metade Docker: o que sobrou da semana. Sem sobra, rodar o
+    bot pelo compose (`docker compose up jansen-bot postgres-bot`) e explicar
+    por que ele pode cair antes do banco ficar pronto (é o gancho da semana 2).
+- **Projeto: T022E fecha ou T022F começa**
+  - `45 min` Se a T022E não fechou no sábado, ela termina aqui (não estique o
+    bloco). Se fechou: T022F, plano (`/revisa-meu-codigo T022F plano`): o novo
+    campo de tipo em `ClaudeAction.ActionData` e o que muda no
+    `system-prompt.txt` (FR-019, FR-022).
+- Escrever no papel o alvo de segunda 05/10.
 - **Leve:** terminar *The Mom Test* no trajeto.
-
-**Entregável da semana:** projeto rodando em container que você escreveu à mão e
-sabe explicar linha por linha.
 
 ---
 
-## Semana 2 — Docker que você opera · 05–11/10
+**Entregável da semana:**
+- **Docker:** bot rodando num container que você escreveu à mão e explica linha
+  por linha: Dockerfile multi-stage, `--env-file`, banco com volume, README.
+- **Projeto:** T022A–C commitadas; T022D auditada e aprovada por você; P-028 resolvida;
+  T022E escrita por você, do teste à implementação, e aprovada na auditoria.
+  Se sobrar tempo, T022F com o plano auditado. A US1 fica a quatro tasks do fim
+  (T022F, T023, T024, T025).
 
-O que a IA fazia e você não entendia: networking, volumes, multi-stage.
-Quebrar de propósito e consertar.
+**Placar para o ritual de domingo** (marcar cada item):
+- [ ] 7 LeetCodes (#4–#10) *(extra; 29/09 ficou sem)*
+- [ ] 7 retenções diárias + 1 semanal, com as hesitações anotadas
+- [x] Bot sobe com `--env-file` *(29/09)*
+- [x] Banco do projeto lido de fora (migrations e coluna `tipo`) *(29/09)*
+- [ ] Volume provado com `down`/`up`
+- [ ] Container do Testcontainers visto nascendo e morrendo
+- [ ] Dockerfile multi-stage + MB antes e depois
+- [ ] README
+- [ ] T022A–C commitadas (V3, `TipoEnsaio`, service)
+- [ ] T022D auditada e aprovada
+- [ ] P-028 resolvida (`data-model.md` em dia)
+- [ ] T022E: plano auditado
+- [ ] T022E: testes vermelhos pelo motivo certo
+- [ ] T022E: implementação verde e aprovada
+- [ ] *(bônus)* T022F: plano auditado
+
+---
+
+## Semana 2 — Stack completa em compose · 05–11/10
+
+O compose que você escreveu antes da hora (22/09) tem `jansen-bot`,
+`postgres-bot`, `redis` e `evolution-postgres`, mas faltam o serviço
+`evolution-api`, volumes, `healthcheck`/`depends_on`, `env_file` e as
+credenciais do Google. O bot do compose caiu em 27/09 com
+`Connection to postgres-bot:5432 refused`: ele acertou o endereço, mas subiu
+antes do banco estar pronto. Esta semana conserta isso e coloca a stack inteira
+de pé com um comando.
 
 **Segunda 05/10** *(execução)*
 - Noite A: LeetCode + Anki.
-- Noite B: subir um Postgres em container isolado e conectar nele de fora
-  (DBeaver ou `psql`).
-- **Pronto quando:** você conecta e lista as tabelas.
+- `20:00–20:10` **Retenção:** reescrever o Dockerfile multi-stage sem olhar.
+- `20:10–20:45` Limpar o ambiente: apagar os containers parados e a rede
+  `jansen-network` que sobrou vazia do compose antigo (descobrir o comando que
+  remove redes sem ninguém dentro). Criar um `.dockerignore` com o que não deve
+  entrar no build (`.env`, `credentials/`, `.git`).
+- **Pronto quando:** `docker ps -a` e `docker network ls` só mostram o que você
+  sabe explicar.
 
 **Terça 06/10**
-- Manhã: Teoria — networking em Docker. Rede bridge, resolução por nome de
-  serviço, diferença entre expor porta para o host e containers se falarem entre si.
-- Noite B: app + Postgres em containers separados, conversando.
-- **Pronto quando:** a app conecta no banco **pelo nome do serviço**, não por IP.
+- Manhã: Raciocínio — desenhar o `docker-compose.yml` **no papel** antes de
+  mexer no arquivo: os cinco serviços, quem depende de quem, o que é volume, o
+  que é variável de ambiente, o que é segredo. Depois comparar com o compose que
+  você já tem.
+- `20:00–20:10` **Retenção:** explicar o que o `.dockerignore` faz e por que o
+  `.env` não pode entrar na imagem.
+- Noite B: `jansen-bot` + `postgres-bot` no compose, com `env_file` e o volume
+  da semana 1.
+- **Pronto quando:** `docker compose up jansen-bot postgres-bot` sobe os dois. Se
+  o bot cair por subir antes do banco, anote: é o assunto de amanhã.
 
 **Quarta 07/10**
-- Manhã: Teoria — volumes. Bind mount vs named volume; o que persiste e o que
-  evapora quando o container morre.
-- Noite B: volume no Postgres. Derrubar tudo e subir de novo.
-- **Pronto quando:** as linhas que você inseriu antes ainda estão lá.
+- Manhã: Teoria — `healthcheck` e `depends_on` com `condition: service_healthy`.
+  A diferença entre "o container iniciou" e "o serviço está pronto". Usar o log
+  de 27/09 como caso real.
+- `20:00–20:10` **Retenção:** desenhar de novo, sem olhar, o compose de ontem no
+  papel.
+- Noite B: aplicar `healthcheck` no `postgres-bot` e `depends_on` no bot.
+- **Pronto quando:** `docker compose down` e `up` três vezes seguidas, e o bot
+  sobe sempre sem cair.
 
 **Quinta 08/10**
-- Manhã: Teoria — multi-stage build. Por que buildar com JDK e rodar com JRE em
-  estágios separados encolhe a imagem.
-- Noite B: reescrever o Dockerfile em multi-stage.
-- **Pronto quando:** `docker images` comprova a redução, e você anotou o antes e
-  depois em MB.
+- Manhã: Teoria — o que a Evolution API precisa para rodar: Postgres próprio,
+  Redis, API key, e um volume para as instâncias (sem ele, você escaneia o QR
+  code de novo a cada restart).
+- `20:00–20:10` **Retenção:** escrever o `healthcheck` do Postgres sem olhar e
+  explicar cada campo.
+- Noite B: serviço `evolution-api` ligado ao `evolution-postgres` e ao `redis`.
+  A senha do Redis tem que ser a mesma no `command` e na URI da Evolution.
+- **Pronto quando:** a Evolution responde e mostra o QR code.
 
 **Sexta 09/10**
-- `05:40–06:30` Raciocínio: desenhar o `docker-compose.yml` **no papel** antes
-  de escrever — quais serviços, quem depende de quem, o que é volume, o que é
-  variável de ambiente.
+- `05:40–06:30` **Retenção semanal.** Tirar o `docker-compose.yml` da vista e
+  reescrever do zero, cronometrando. Comparar.
 - `07:30–07:55` LeetCode.
-- `07:55–09:00` Escrever o compose juntando tudo.
-- **Pronto quando:** `docker compose up` sobe app + banco de uma vez, partindo
-  do zero, sem nenhum passo manual.
+- `07:55–09:00` Resto das variáveis do bot pelo `.env` (URL da Evolution pelo
+  nome do serviço, Google Sheets, `BANDA_ADMIN_PHONES`), montar `./credentials`
+  como somente leitura e conectar o WhatsApp.
+- **Pronto quando:** partindo de nada rodando, `docker compose up` sobe a stack
+  inteira sem nenhum passo manual, e o bot responde uma mensagem no WhatsApp.
+
+**Fim de semana 10–11/10**
+- `Sáb 13:00–13:10` **Retenção:** explicar a ordem em que os cinco serviços
+  sobem e por quê.
+- `Dom 13:50–14:00` **Retenção:** escrever o serviço `evolution-api` sem olhar.
 
 **Leve:** mapear 10 barbearias acessíveis (conhecidos, bairro, a sua própria) e
 escrever o roteiro de conversa no estilo Mom Test — perguntar sobre a vida
 deles, nunca sobre a sua ideia. Sábado 10:30–12:00.
 
-**Entregável:** stack completa subindo com um comando + lista de 10 barbearias e
-roteiro pronto.
+**Entregável:** stack completa subindo com um comando, bot respondendo no
+WhatsApp + lista de 10 barbearias e roteiro pronto.
 
 ---
 
@@ -320,6 +566,7 @@ qualquer código.**
 
 **Segunda 12/10** *(execução)*
 - Noite A: LeetCode + Anki.
+- `20:00–20:10` **Retenção:** reescrever o `docker-compose.yml` sem olhar.
 - Noite B: escolher o projeto e listar por escrito os casos a testar — caminho
   feliz e casos de erro. Sem código nenhum.
 - **Pronto quando:** existe uma lista nomeada de 8 a 12 casos.
@@ -328,6 +575,7 @@ qualquer código.**
 - Manhã: Teoria — `ArgumentCaptor`. Por que `verify()` sozinho não basta quando
   o objeto é criado **dentro** do método e não sai por lugar nenhum: você não
   tem referência para comparar, então precisa capturar o que foi passado ao mock.
+- `20:00–20:10` **Retenção:** reescrever de memória a lista de casos de ontem.
 - Noite B: os dois primeiros testes com captor, em `registerVote`.
 - **Pronto quando:** 2 testes verdes usando `ArgumentCaptor`.
 
@@ -335,6 +583,8 @@ qualquer código.**
 - Manhã: Teoria — stubbing vs verificação. `when(...).thenReturn(...)` prepara o
   que o método **consome**; `verify(...)` confere o que o método **produz**.
   Confundir os dois é o erro mais comum de quem está começando.
+- `20:00–20:10` **Retenção:** reescrever um dos testes com `ArgumentCaptor` sem
+  olhar (declaração, `verify` com `capture()`, `getValue()`).
 - Noite B: cobrir 3 casos de caminho feliz da lista de segunda.
 - **Pronto quando:** 3 testes verdes.
 
@@ -342,6 +592,8 @@ qualquer código.**
 - Manhã: Teoria — testar erro. `assertThrows` para a exceção esperada, e
   `verify(mock, never())` para provar que o colaborador **não** foi chamado
   quando deveria ter abortado. O segundo é o que a maioria esquece.
+- `20:00–20:10` **Retenção:** explicar em voz alta a diferença entre `when` e
+  `verify` e escrever um exemplo de cada, sem olhar.
 - Noite B: cobrir os casos de erro.
 - **Pronto quando:** cada caso de erro da lista de segunda tem um teste.
 
@@ -349,9 +601,17 @@ qualquer código.**
 - `05:40–06:30` Raciocínio: ler a suíte inteira e encontrar o caso que você
   **não** cobriu. Sempre existe um.
 - `07:30–07:55` LeetCode.
-- `07:55–09:00` Fechar a suíte.
+- `07:55–08:10` **Retenção semanal:** escrever do zero um teste de caso de erro
+  completo (`assertThrows` + `verify(mock, never())`), sem olhar.
+- `08:10–09:00` Fechar a suíte.
 - **Pronto quando:** `mvn test` verde e todos os casos da lista de segunda
   cobertos.
+
+**Fim de semana 17–18/10**
+- `Sáb 13:00–13:10` **Retenção:** explicar quando usar `ArgumentCaptor` e quando
+  `verify` direto basta.
+- `Dom 13:50–14:00` **Retenção:** escrever um teste com stubbing e verificação,
+  sem olhar.
 
 **Leve:** 2 primeiras conversas de descoberta com barbearias, aplicando o
 roteiro. Documentar cru, sem interpretar ainda.
@@ -367,6 +627,7 @@ quatro semanas depois: o Docker das semanas 1 e 2 ainda está fresco.
 
 **Segunda 19/10** *(execução)*
 - Noite A: LeetCode + Anki.
+- `20:00–20:10` **Retenção:** escrever um teste de unidade com captor sem olhar.
 - Noite B: adicionar a dependência do Testcontainers no `pom.xml`.
 - **Pronto quando:** o projeto compila com a dependência nova.
 
@@ -375,18 +636,24 @@ quatro semanas depois: o Docker das semanas 1 e 2 ainda está fresco.
   dos dois** prova. Por que um Postgres real em container vale mais que um H2 em
   memória: o banco de mentira aceita coisas que o de verdade recusa, e o teste
   passa enquanto a produção quebra.
+- `20:00–20:10` **Retenção:** escrever de memória a dependência do
+  Testcontainers no `pom.xml`.
 - Noite B: subir um Postgres via Testcontainers dentro de um teste.
 - **Pronto quando:** o teste sobe o container e conecta.
 
 **Quarta 21/10**
 - Manhã: Teoria — ciclo de vida do container no teste. `@Container` estático
   (uma vez por classe) vs por método, e o custo de tempo de cada escolha.
+- `20:00–20:10` **Retenção:** reescrever sem olhar a declaração do container
+  Postgres no teste e explicar o que ela faz.
 - Noite B: primeiro teste de integração ponta a ponta — salva e lê do banco real.
 - **Pronto quando:** 1 teste de integração verde.
 
 **Quinta 22/10**
 - Manhã: Raciocínio — escolher o segundo fluxo a cobrir e desenhar o cenário
   antes de codar: o que entra, o que deve estar no banco no fim.
+- `20:00–20:10` **Retenção:** explicar `@Container` estático vs por método e o
+  custo de cada um.
 - Noite B: implementar.
 - **Pronto quando:** 2º teste de integração verde.
 
@@ -395,9 +662,16 @@ quatro semanas depois: o Docker das semanas 1 e 2 ainda está fresco.
   unidade rodam juntas, cada `mvn test` passa a custar minutos e você vai parar
   de rodar — separar é o que mantém o hábito vivo.
 - `07:30–07:55` LeetCode.
-- `07:55–09:00` Configurar a separação (tag do JUnit 5 ou profile do Maven).
+- `07:55–08:10` **Retenção semanal:** escrever do zero um teste de integração
+  completo com Testcontainers, sem olhar.
+- `08:10–09:00` Configurar a separação (tag do JUnit 5 ou profile do Maven).
 - **Pronto quando:** `mvn test` roda só unidade e é rápido; um comando separado
   roda a integração.
+
+**Fim de semana 24–25/10**
+- `Sáb 13:00–13:10` **Retenção:** explicar o que teste de unidade e de
+  integração provam, e o que nenhum dos dois prova.
+- `Dom 13:50–14:00` **Retenção:** escrever o comando que roda só a integração.
 
 **Leve:** +3 conversas (total de 5). Domingo: escrever a síntese preliminar — a
 dor é real? Pagariam? Quanto?
@@ -422,6 +696,10 @@ pela internet. Sozinho — IA como consulta, não como piloto.
 - **Sex** — Manhã: debugar até responder pela internet. Bloco longo: documentar
   cada passo enquanto faz, porque isso vira a base do CI/CD da Season 2.
 
+**Retenção diária** (10min, regra no topo da Season): comandos de SSH e de
+chave; como a imagem chega na instância; os passos do deploy do dia anterior, na
+ordem. Sexta: refazer do zero o deploy da semana a partir das suas anotações.
+
 **Leve:** sintetizar as 5 conversas e escrever o veredito preliminar.
 **Entregável:** algo seu no ar, que outra pessoa abre por um IP ou URL.
 
@@ -438,6 +716,10 @@ pela internet. Sozinho — IA como consulta, não como piloto.
   matando o processo de propósito.
 - **Sex** — Manhã: revisão fim a fim. Bloco longo: fechar o deploy documentado
   passo a passo.
+
+**Retenção diária:** registro A e propagação de DNS; o caminho de uma requisição
+HTTPS até o container (proxy, certificado, porta); as políticas de `restart`.
+Sexta: explicar o deploy inteiro em voz alta, do domínio ao container.
 
 **Leve:** fechar o documento de validação com um veredito claro — **validado /
 não validado / pivotar de nicho**.
@@ -456,6 +738,10 @@ Primeira chamada de API de LLM **dentro de código seu**. Nada de copiar do chat
   ajustar até o JSON vir confiável cinco vezes seguidas.
 - **Qui** — Noite: parsear a resposta e usar o resultado no programa.
 - **Sex** — Bloco longo: transformar num serviço pequeno reutilizável.
+
+**Retenção diária:** anatomia da chamada (request, response, tokens, custo);
+reescrever sem olhar o prompt estruturado e o parse do JSON. Sexta: reescrever
+do zero a chamada completa.
 
 **Leve:** se validado, esboçar o escopo mínimo do agente da barbearia — o que
 faz, qual o fluxo de conversa. Se não validado, escolher o próximo nicho.
@@ -477,6 +763,10 @@ RAG à mão. Entender o mecanismo, não usar framework mágico.
 - **Qui** — Noite: RAG ponta a ponta.
 - **Sex** — Bloco longo: escrever a spec de 1 página do MVP. Fecha a Season.
 
+**Retenção diária:** o que é embedding e por que busca por significado não é
+busca por palavra; desenhar sem olhar o fluxo pergunta → recupera → responde.
+Sexta: reescrever do zero a etapa de busca.
+
 **Entregável:** RAG mínimo funcionando + spec do MVP pronta.
 
 ---
@@ -490,6 +780,8 @@ RAG à mão. Entender o mecanismo, não usar framework mágico.
 4. Escrever o alvo de segunda-feira numa linha — segunda não tem manhã para
    decidir nada.
 5. Mover para a semana seguinte só o que ficou pendente. Não acumular culpa.
+6. Ler o caderno de retenção da semana. O que você hesitou mais de uma vez vira
+   alvo da retenção da semana seguinte.
 
 ---
 
