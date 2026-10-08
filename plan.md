@@ -470,7 +470,10 @@ são extras, fora das metades.
 - [ ] Dockerfile multi-stage + MB antes e depois
 - [ ] README
 - [ ] T022A–C commitadas (V3, `TipoEnsaio`, service)
-- [ ] T022D auditada e aprovada
+- [x] T022D auditada e aprovada *(07/10: achou a sobreposição dos testes 1 e 4 e
+  apagou o 4; previu errado a quebra da linha 29 (achou que o 2 cairia e o 3 não) e
+  entendeu: INSTRUMENTAL = "não é vocal", então só a linha 29 barra a projeção.
+  Suíte: 56 verdes)*
 - [ ] P-028 resolvida (`data-model.md` em dia)
 - [ ] T022E: plano auditado
 - [ ] T022E: testes vermelhos pelo motivo certo

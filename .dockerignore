@@ -1,0 +1,13 @@
+docker-compose.yml
+.env
+credentials/
+
+qrcode.png
+qrcode_redis.png
+
+payload.json
+
+target/
+.idea/
+scratch/
+.git

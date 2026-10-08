@@ -6,9 +6,9 @@ services:
       - "8080:8080"
     environment:
 
-      BOT_DB_URL: jdbc:postgresql://postgres-bot:5432/jansenbot
-      BOT_DB_USER: jansenbot
-      BOT_DB_PASSWORD: postgres
+      BOT_DB_URL: ${BOT_DB_URL}
+      BOT_DB_USER: ${BOT_DB_USER}
+      BOT_DB_PASSWORD: ${BOT_DB_PASSWORD}
 
 
 
@@ -18,9 +18,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: jansenbot
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: jansenbot
+      POSTGRES_USER: ${BOT_DB_USER}
+      POSTGRES_PASSWORD: ${BOT_DB_PASSWORD}
+      POSTGRES_DB: ${BOT_DB_DB}
 
     volumes:
       - postgres-bot-data:/var/lib/postgresql/data
@@ -31,9 +31,9 @@ services:
   evolution-postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: evolution
-      POSTGRES_PASSWORD: evolution
-      POSTGRES_DB: evolution
+      POSTGRES_USER: ${EVOLUTION_DB_USER}
+      POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD}
+      POSTGRES_DB: ${EVOLUTION_DB_DB}
 
 volumes:
     postgres-bot-data:
