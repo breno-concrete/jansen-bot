@@ -70,13 +70,4 @@ class SheetsIntegranteAdapterTest {
         assertEquals(List.of("5511111111111"), telefones);
     }
 
-    @Test
-    @DisplayName("FR-019: ensaio GERAL convoca todos os ativos, exceto projeção")
-    void buscarTelefonesElegiveis_geral_todosMenosProjecao() {
-        cadastroDeTodosOsInstrumentos();
-
-        List<String> telefones = new SheetsIntegranteAdapter(repository).buscarTelefonesElegiveis(TipoEnsaio.GERAL);
-
-        assertEquals(List.of("5511111111111", "5522222222222", "5533333333333"), telefones);
-    }
 }

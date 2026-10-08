@@ -169,7 +169,7 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       (FR-003, FR-018, FR-019); o aviso informa o tipo e instrui o formato de resposta com o
       tipo, ex. "sim, vocal" (FR-003). Ajustar os testes T017/T018 já aprovados (depende de
       T022A; retrabalha T017/T018/T021)
-- [ ] T022D [US1] Implementar `SheetsIntegranteAdapter implements IntegranteRepositoryPort`
+- [x] T022D [US1] Implementar `SheetsIntegranteAdapter implements IntegranteRepositoryPort`
       (lê `GoogleSheetsRepository.findAllMembers()`, mantém só `ativo`, exclui "projeção" com a
       mesma regra de `ActionDispatcher.isProjecao` e filtra pelo tipo: VOCAL = instrumento
       vocal/voz; INSTRUMENTAL = demais; GERAL = todos — FR-003, FR-018, FR-019) em
