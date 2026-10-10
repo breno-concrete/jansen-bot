@@ -176,7 +176,7 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       `src/main/java/com/jansen/bot/rehearsal/adapters/out/SheetsIntegranteAdapter.java`, com
       teste em `.../adapters/out/SheetsIntegranteAdapterTest.java`. O `RehearsalVotingConfig`
       (bean do service) já existe (depende de T022C)
-- [ ] T022E [US1] Retrabalhar `registrarVoto` (teste primeiro): (a) só integrante convocado do
+- [x] T022E [US1] Retrabalhar `registrarVoto` (teste primeiro): (a) só integrante convocado do
       tipo do ensaio vota; líder e não convocados são ignorados em silêncio — sem registrar e
       sem notificar (FR-020); (b) a resposta resolve o ensaio pelo integrante: um único ensaio
       pendente → esse; mais de um → só vale se o texto indicar o tipo; sem tipo, não registra e

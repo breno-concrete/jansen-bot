@@ -12,7 +12,10 @@ import com.jansen.bot.rehearsal.ports.NotificationPort;
 import com.jansen.bot.rehearsal.ports.RehearsalRepositoryPort;
 import com.jansen.bot.util.PhoneUtils;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Casos de uso da votação de ensaio (contracts/rehearsal-ports.md). Sem anotações Spring: o
@@ -67,11 +70,64 @@ public class RehearsalVotingService {
 
     public void registrarVoto(String telefoneIntegrante, Voto.Escolha escolha, TipoEnsaio tipoInformado){
 
+        // FR-020: a líder nunca vota (a porta recebe o telefone como veio)
+        if (politicaDeLider.isLider(telefoneIntegrante)) {
+            return;
+        }
+
+        String telefone = PhoneUtils.normalize(telefoneIntegrante);
+
+        // o cadastro vem do Sheets (quota): consulta uma vez por tipo, não uma vez por ensaio aberto
+        Map<TipoEnsaio, Boolean> convocadoPorTipo = new EnumMap<>(TipoEnsaio.class);
+        List<Ensaio> pendentes = repositorio.buscarComVotacaoAberta().stream()
+                .filter(ensaio -> convocadoPorTipo.computeIfAbsent(ensaio.tipo(), tipo -> isConvocado(telefone, tipo)))
+                .toList();
+
+        // 0 pendentes: FR-020, ignora em silêncio.
+        if (pendentes.isEmpty()) {
+            return;
+        }
+        // 2+ pendentes: FR-021/FR-022 (desempate pelo tipoInformado)
+        if (pendentes.size() >= 2) {
+            List<Ensaio> filtrados = pendentes.stream()
+                    .filter(ensaio -> ensaio.tipo() == tipoInformado)
+                    .toList();
+            if (filtrados.isEmpty()) {
+                notificacao.notificarIntegrante(telefoneIntegrante, mensagemPedindoOTipo(pendentes));
+                return;
+            } else {
+                pendentes = filtrados;
+            }
+        }
+
+        Ensaio ensaio = pendentes.get(0);
+        ensaio.registrarVoto(telefone, escolha, relogio.agora());
+        repositorio.salvar(ensaio);
+
+        notificacao.notificarIntegrante(telefoneIntegrante, mensagemDeConfirmacaoDoVoto(escolha));
+    }
+
+    /** FR-020: convocado para o tipo do ensaio. */
+    private boolean isConvocado(String telefoneNormalizado, TipoEnsaio tipo) {
+        return integrantes.buscarTelefonesElegiveis(tipo).stream()
+                .map(PhoneUtils::normalize)
+                .anyMatch(telefoneNormalizado::equals);
+
     }
 
     private String mensagemDeConfirmacaoDoVoto(Voto.Escolha escolha) {
         String resposta = escolha == Voto.Escolha.SIM ? "SIM" : "NÃO";
         return "Sua resposta *" + resposta + "* foi registrada.";
+    }
+
+    /** P-030: pede o tipo quando há mais de um ensaio pendente e o integrante não disse (ou errou) qual. */
+    private String mensagemPedindoOTipo(List<Ensaio> pendentes) {
+        String tipos = pendentes.stream()
+                .map(ensaio -> ensaio.tipo().name().toLowerCase())
+                .collect(Collectors.joining(", "));
+        return "Você tem mais de um ensaio aberto. Responda *sim* ou *não* dizendo o tipo. "
+                + "Exemplo: *sim, vocal*.\n"
+                + "Ensaios abertos: " + tipos + ".";
     }
 
     private String mensagemDePedidoDeConfirmacao(Ensaio ensaio) {

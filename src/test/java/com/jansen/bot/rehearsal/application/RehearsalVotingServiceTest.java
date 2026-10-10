@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -203,6 +204,135 @@ class RehearsalVotingServiceTest {
         assertEquals(MEMBRO_ID, ultimoSalvo().votos().get(0).integranteId());
     }
 
+    @Test
+    @DisplayName("FR-022/T022E: com um único ensaio pendente, o voto do convocado vale para ele sem precisar dizer o tipo")
+    void registrarVoto_umUnicoEnsaioPendente_gravaOVotoNele() {
+        Ensaio ensaio = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, null);
+
+        assertEquals(List.of(new Voto(MEMBRO_ID, ensaio.id(), Voto.Escolha.SIM, AGORA)), ultimoSalvo().votos());
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertTrue(notificacao.paraIntegrante.get(0).toLowerCase().contains("sim"));
+    }
+
+    @Test
+    @DisplayName("FR-020/T022E: integrante não convocado para o tipo do ensaio é ignorado em silêncio")
+    void registrarVoto_integranteNaoConvocado_naoGravaNemConfirma() {
+        // MEMBRO fica fora da coluna VOCAL; só a líder e o MEMBRO_2 são convocados
+        integrantes = new FakeIntegrantes(LIDER, MEMBRO, MEMBRO_2).comTipo(TipoEnsaio.VOCAL, LIDER, MEMBRO_2);
+        service = new RehearsalVotingService(repositorio, notificacao, () -> AGORA,
+                telefone -> Set.of(LIDER).contains(telefone), integrantes);
+        service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+        int salvamentosAntes = repositorio.salvos.size();
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, null);
+
+        assertTrue(ultimoSalvo().votos().isEmpty(), "não deve gravar o voto de quem não é convocado");
+        assertEquals(salvamentosAntes, repositorio.salvos.size(), "não deve salvar de novo");
+        assertTrue(notificacao.paraIntegrante.isEmpty(), "não deve responder a quem foi ignorado");
+    }
+
+    @Test
+    @DisplayName("FR-020/T022E: a líder não vota, mesmo estando no cadastro de convocados do tipo")
+    void registrarVoto_lider_ehIgnoradaEmSilencio() {
+        // no setUp a LIDER está na lista de elegíveis de todos os tipos, então só a regra "líder não vota" a barra
+        service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-25 19:00", "Estúdio X");
+        int salvamentosAntes = repositorio.salvos.size();
+
+        service.registrarVoto(LIDER, Voto.Escolha.SIM, null);
+
+        assertTrue(ultimoSalvo().votos().isEmpty(), "não deve gravar o voto da líder");
+        assertEquals(salvamentosAntes, repositorio.salvos.size(), "não deve salvar de novo");
+        assertTrue(notificacao.paraIntegrante.isEmpty(), "não deve responder à líder");
+    }
+
+    @Test
+    @DisplayName("FR-021/FR-022: com mais de um ensaio pendente, o voto vale só para o ensaio do tipo informado")
+    void registrarVoto_maisDeUmPendente_tipoInformado_gravaSoNoEnsaioDoTipo() {
+        // no setUp o MEMBRO é convocado para todos os tipos, então ele tem os dois ensaios pendentes
+        Ensaio vocal = service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+        Ensaio geral = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-26 19:00", "Estúdio Y");
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, TipoEnsaio.VOCAL);
+
+        assertEquals(List.of(new Voto(MEMBRO_ID, vocal.id(), Voto.Escolha.SIM, AGORA)), vocal.votos());
+        assertTrue(geral.votos().isEmpty(), "o outro ensaio pendente não deve receber o voto");
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertTrue(notificacao.paraIntegrante.get(0).toLowerCase().contains("sim"));
+    }
+
+    @Test
+    @DisplayName("FR-022/P-030: com mais de um pendente e tipo que não bate com nenhum, não grava e pede o tipo listando os abertos")
+    void registrarVoto_maisDeUmPendente_tipoIncompativel_naoGravaEPedeOTipo() {
+        Ensaio vocal = service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+        Ensaio geral = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-26 19:00", "Estúdio Y");
+        int salvamentosAntes = repositorio.salvos.size();
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, TipoEnsaio.INSTRUMENTAL);
+
+        assertTrue(vocal.votos().isEmpty(), "não deve gravar em nenhum ensaio");
+        assertTrue(geral.votos().isEmpty(), "não deve gravar em nenhum ensaio");
+        assertEquals(salvamentosAntes, repositorio.salvos.size(), "não deve salvar de novo");
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertPedidoDeTipo(notificacao.paraIntegrante.get(0));
+    }
+
+    @Test
+    @DisplayName("FR-022/P-030: com mais de um pendente e sem tipo informado, não grava e pede o tipo listando os abertos")
+    void registrarVoto_maisDeUmPendente_semTipo_naoGravaEPedeOTipo() {
+        Ensaio vocal = service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+        Ensaio geral = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-26 19:00", "Estúdio Y");
+        int salvamentosAntes = repositorio.salvos.size();
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, null);
+
+        assertTrue(vocal.votos().isEmpty(), "não deve gravar em nenhum ensaio");
+        assertTrue(geral.votos().isEmpty(), "não deve gravar em nenhum ensaio");
+        assertEquals(salvamentosAntes, repositorio.salvos.size(), "não deve salvar de novo");
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertPedidoDeTipo(notificacao.paraIntegrante.get(0));
+    }
+
+    @Test
+    @DisplayName("FR-021/FR-022: convocado para só um dos ensaios abertos tem um único pendente, e o voto vale sem tipo")
+    void registrarVoto_convocadoParaSoUmDosAbertos_gravaNeleSemPedirOTipo() {
+        // MEMBRO fica fora da coluna VOCAL: dos dois ensaios abertos, só o GERAL o convoca
+        integrantes = new FakeIntegrantes(LIDER, MEMBRO, MEMBRO_2).comTipo(TipoEnsaio.VOCAL, LIDER, MEMBRO_2);
+        service = new RehearsalVotingService(repositorio, notificacao, () -> AGORA,
+                telefone -> Set.of(LIDER).contains(telefone), integrantes);
+        Ensaio vocal = service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+        Ensaio geral = service.criarEnsaio(LIDER, TipoEnsaio.GERAL, "2026-09-26 19:00", "Estúdio Y");
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, null);
+
+        assertEquals(List.of(new Voto(MEMBRO_ID, geral.id(), Voto.Escolha.SIM, AGORA)), geral.votos());
+        assertTrue(vocal.votos().isEmpty(), "o ensaio que não o convoca não deve receber o voto");
+        assertEquals(1, notificacao.paraIntegrante.size());
+        assertFalse(notificacao.paraIntegrante.get(0).toLowerCase().contains("mais de um ensaio aberto"),
+                "com um único pendente não há o que desambiguar");
+    }
+
+    @Test
+    @DisplayName("Quota do Sheets: o cadastro é consultado uma vez por tipo, mesmo com vários ensaios abertos do mesmo tipo")
+    void registrarVoto_consultaOCadastroUmaVezPorTipo() {
+        service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-25 19:00", "Estúdio X");
+        service.criarEnsaio(LIDER, TipoEnsaio.VOCAL, "2026-09-26 19:00", "Estúdio Y");
+        integrantes.consultas = 0;
+
+        service.registrarVoto(MEMBRO, Voto.Escolha.SIM, null);
+
+        assertEquals(1, integrantes.consultas);
+    }
+
+    /** P-030: pedido de desambiguação, com os tipos dos ensaios abertos na ordem do repositório. */
+    private void assertPedidoDeTipo(String mensagem) {
+        String texto = mensagem.toLowerCase();
+        assertTrue(texto.contains("mais de um ensaio aberto"), "deve explicar o motivo: " + mensagem);
+        assertTrue(texto.contains("sim, vocal"), "deve dar o exemplo de formato: " + mensagem);
+        assertTrue(texto.contains("ensaios abertos: vocal, geral"), "deve listar os abertos: " + mensagem);
+    }
+
     private Ensaio ultimoSalvo() {
         return repositorio.salvos.get(repositorio.salvos.size() - 1);
     }
@@ -211,6 +341,7 @@ class RehearsalVotingServiceTest {
 
     static class FakeIntegrantes implements IntegranteRepositoryPort {
         private final Map<TipoEnsaio, List<String>> porTipo = new EnumMap<>(TipoEnsaio.class);
+        int consultas;
 
         /** Mesmos telefones para qualquer tipo. */
         FakeIntegrantes(String... telefones) {
@@ -226,6 +357,7 @@ class RehearsalVotingServiceTest {
 
         @Override
         public List<String> buscarTelefonesElegiveis(TipoEnsaio tipo) {
+            consultas++;
             return porTipo.get(tipo);
         }
     }
