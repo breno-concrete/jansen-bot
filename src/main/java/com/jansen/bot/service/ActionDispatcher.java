@@ -2,7 +2,10 @@ package com.jansen.bot.service;
 
 import com.jansen.bot.client.EvolutionClient;
 import com.jansen.bot.config.AppProperties;
+import com.jansen.bot.exception.NaoAutorizadoException;
 import com.jansen.bot.model.*;
+import com.jansen.bot.rehearsal.application.RehearsalVotingService;
+import com.jansen.bot.rehearsal.domain.TipoEnsaio;
 import com.jansen.bot.repository.GoogleSheetsRepository;
 import com.jansen.bot.util.PhoneUtils;
 import org.slf4j.Logger;
@@ -10,9 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Interpreta a ação retornada pela Claude e executa a operação correspondente.
@@ -32,6 +33,7 @@ public class ActionDispatcher {
     private final MemberOfMonthService memberOfMonthService;
     private final MusicSuggestionService musicSuggestionService;
     private final RehearsalCounterService rehearsalCounterService;
+    private final RehearsalVotingService votacao;
 
     public ActionDispatcher(RehearsalService rehearsalService,
                             BroadcastService broadcastService,
@@ -42,7 +44,8 @@ public class ActionDispatcher {
                             ArrivalService arrivalService,
                             MemberOfMonthService memberOfMonthService,
                             MusicSuggestionService musicSuggestionService,
-                            RehearsalCounterService rehearsalCounterService) {
+                            RehearsalCounterService rehearsalCounterService,
+                            RehearsalVotingService votacao) {
         this.rehearsalService = rehearsalService;
         this.broadcastService = broadcastService;
         this.repository = repository;
@@ -53,6 +56,7 @@ public class ActionDispatcher {
         this.memberOfMonthService = memberOfMonthService;
         this.musicSuggestionService = musicSuggestionService;
         this.rehearsalCounterService = rehearsalCounterService;
+        this.votacao = votacao;
     }
 
     /**
@@ -111,55 +115,31 @@ public class ActionDispatcher {
 
     // ==================== HANDLERS ====================
 
+    /** T023: cria o ensaio pelo serviço novo (FR-001, FR-002, FR-019); a regra de líder e os destinatários vivem lá. */
     private String handleScheduleRehearsal(String memberPhone, ClaudeAction action) {
-        if (!isAdmin(memberPhone)) {
-            return "Só admin pode agendar ensaio, beleza? 😅";
-        }
         ClaudeAction.ActionData dados = action.dados();
-        String dataHora = dados != null ? dados.opcoesDatas() : "";
-        String local = dados != null ? dados.local() : "A definir";
-        Rehearsal rehearsal = rehearsalService.createScheduledRehearsal(dataHora, local);
-
-        String presenceMessage = "🎸 *Ensaio marcado!*\n\n" +
-                action.resposta() +
-                "\n\n👉 *Você vai estar presente?*\n" +
-                "Responde *SIM* ou *NÃO*!";
-
-        // Detecta tipo de ensaio pela resposta da IA
-        String respLower = action.resposta().toLowerCase();
-        List<Member> recipients = repository.findAllMembers().stream()
-                .filter(Member::ativo)
-                .filter(m -> !isProjecao(m)) // projeção nunca recebe msg de ensaio
-                .filter(m -> filterByRehearsalType(m, respLower))
-                .collect(Collectors.toList());
-
-        evolutionClient.sendTextMessageSeries(recipients, presenceMessage);
-
-        String tipoLog = respLower.contains("voz") ? "vozes" : respLower.contains("instrumental") ? "instrumental" : "geral";
-        return "Pronto! Mandei pro pessoal do ensaio de " + tipoLog + " confirmar presença ✅ (" + recipients.size() + " membros)";
+        String dataHora = dados != null ? dados.opcoesDatas() : null;
+        if (dataHora == null || dataHora.isBlank()) {
+            return "Não consegui entender a data e o horário do ensaio. Pode mandar de novo? Exemplo: 25/10 às 19:00.";
+        }
+        TipoEnsaio tipo = tipoDe(dados.tipoEnsaio());
+        try {
+            votacao.criarEnsaio(memberPhone, tipo, dataHora, dados.local());
+        } catch (NaoAutorizadoException e) {
+            return "Só admin pode agendar ensaio, beleza?";
+        }
+        return "Ensaio " + tipo.name().toLowerCase() + " criado. Mandei o pedido de confirmação para o pessoal.";
     }
 
-    /**
-     * Filtra membros por tipo de ensaio:
-     * - "vozes" → só quem tem VOCAL no instrumento
-     * - "instrumental" → só quem tem instrumento (não vocal, não projeção)
-     * - "geral" (default) → todos (exceto projeção, já filtrado antes)
-     */
-    private boolean filterByRehearsalType(Member member, String respLower) {
-        String instr = member.instrumento().toLowerCase();
-        if (respLower.contains("voz") || respLower.contains("vocal")) {
-            return instr.contains("vocal") || instr.contains("voz");
+    /** P-034: sem tipo (ou tipo desconhecido) o ensaio é geral. */
+    private TipoEnsaio tipoDe(String tipoEnsaio) {
+        if (tipoEnsaio == null) {
+            return TipoEnsaio.GERAL;
         }
-        if (respLower.contains("instrumental")) {
-            return !instr.contains("vocal") && !instr.contains("voz");
-        }
-        // Geral: todos (projeção já foi filtrado antes)
-        return true;
-    }
-
-    private boolean isProjecao(Member member) {
-        String instr = member.instrumento().toLowerCase();
-        return instr.contains("proje") || instr.contains("projeção") || instr.contains("projecao");
+        return Arrays.stream(TipoEnsaio.values())
+                .filter(t -> t.name().equalsIgnoreCase(tipoEnsaio.trim()))
+                .findFirst()
+                .orElse(TipoEnsaio.GERAL);
     }
 
     private String handleShowRegistration(String memberPhone, ClaudeAction.ActionData dados) {
