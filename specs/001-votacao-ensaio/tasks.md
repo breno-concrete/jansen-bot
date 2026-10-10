@@ -192,7 +192,7 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       (`tipoEnsaio`), sem converter para `TipoEnsaio`: a conversão fica no dispatcher (T023).
       Teste em `src/test/java/com/jansen/bot/model/ClaudeActionTest.java`: JSON com o campo
       preenche `dados().tipoEnsaio()`; JSON sem o campo deixa `null`
-- [ ] T022G [P] [US1] Parser de voto, sem IA (teste primeiro): classe pura
+- [x] T022G [P] [US1] Parser de voto, sem IA (teste primeiro): classe pura
       `InterpretadorDeVoto` na camada de interpretação (`src/main/java/com/jansen/bot/rehearsal/
       adapters/in/`, antes do `ActionDispatcher`; **não** dentro do `RehearsalVotingService`, que
       só recebe `Voto.Escolha` e `TipoEnsaio`, ver `rehearsal-ports.md`). Recebe o texto e devolve
@@ -224,7 +224,7 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       `proximoEnsaioResumo`/`ensaios`) e o que fazer enquanto coexistirem ensaios legados e
       novos (Strangler Fig, research.md D2); perguntar ao Breno antes de codar (depende de
       T023; precisa estar pronta antes da T024 ser validada na T025)
-- [ ] T024 [US1] Migrar os cases `BotAction.CONFIRMAR_PRESENCA` e `BotAction.NEGAR_PRESENCA`
+- [x] T024 [US1] Migrar os cases `BotAction.CONFIRMAR_PRESENCA` e `BotAction.NEGAR_PRESENCA`
       em `ActionDispatcher.dispatch` para chamar `RehearsalVotingService.registrarVoto` em
       vez de `RehearsalService.registerPresence`, no mesmo arquivo de T023; a resolução do
       ensaio (um pendente / tipo no texto / ignorar fora do escopo, FR-020 a FR-022) fica no
