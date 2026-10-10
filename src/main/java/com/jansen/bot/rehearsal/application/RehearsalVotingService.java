@@ -65,6 +65,10 @@ public class RehearsalVotingService {
         notificacao.notificarIntegrante(telefoneIntegrante, mensagemDeConfirmacaoDoVoto(escolha));
     }
 
+    public void registrarVoto(String telefoneIntegrante, Voto.Escolha escolha, TipoEnsaio tipoInformado){
+
+    }
+
     private String mensagemDeConfirmacaoDoVoto(Voto.Escolha escolha) {
         String resposta = escolha == Voto.Escolha.SIM ? "SIM" : "NÃO";
         return "Sua resposta *" + resposta + "* foi registrada.";

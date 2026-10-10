@@ -11,6 +11,7 @@ de persistência existentes, `Rehearsal` e `ResponseRecord`).
 | `id` | `String` | gerado por `PhoneUtils.generateId()`, como hoje |
 | `dataHora` | `String`/`LocalDateTime` | data/hora do ensaio (decidida pela líder, sem votação de datas — spec não pede múltiplas opções) |
 | `local` | `String` | default `"A definir"` se não informado (comportamento já existente, preservar) |
+| `tipo` | enum `TipoEnsaio`: `VOCAL`, `INSTRUMENTAL`, `GERAL` | obrigatório (FR-019); define quem é convocado, quem pode votar (FR-020) e o universo do quórum (FR-018). No banco: `ensaio.tipo VARCHAR(32) NOT NULL` (migration V3) |
 | `criadoEm` | `Instant` (via `ClockPort`) | usado para calcular o prazo de 12h (FR-007) |
 | `prazoVotacaoEm` | `Instant` | `criadoEm + 12h`; **reiniciado a cada remarcação** (FR-017) |
 | `status` | enum `VOTACAO_ABERTA`, `ENCERRADA` | ver transições abaixo |
@@ -60,12 +61,13 @@ mapeada pelo adapter a partir de `Member` + `AppProperties`.
 Persistência em Postgres via JPA/Flyway, no adapter (ver `research.md` D4). O domínio não
 tem anotações JPA; o `PostgresRehearsalAdapter` mapeia `Ensaio` de/para uma entidade JPA.
 
-- `Ensaio` (id, dataHora, local, criadoEm, prazoVotacaoEm, status, decisaoFinal) mapeia para
+- `Ensaio` (id, dataHora, local, tipo, criadoEm, prazoVotacaoEm, status, decisaoFinal) mapeia para
   uma tabela própria; `historicoRemarcacoes` (novo `dataHora` + timestamp) para uma tabela
   filha. Nomes de tabela/coluna e tipos são decididos na migration Flyway da T013.
-- `Voto` ainda não é persistido: o `Ensaio` só passa a guardar votos na T030. A tabela de
-  votos entra em migration própria nessa task. `NAO_RESPONDEU` é atribuído pelo sistema ao
-  encerrar por prazo (FR-009); se ele é gravado ou só calculado no relatório fica para essa
-  task.
+- `Voto` é persistido na tabela `voto` (migration V2, T022): colunas `ensaio_id` (FK para
+  `ensaio`, `ON DELETE CASCADE`), `integrante_id`, `escolha` e `respondido_em` (nulo enquanto
+  pendente), com chave primária `(ensaio_id, integrante_id)`. `NAO_RESPONDEU` é atribuído
+  pelo sistema ao encerrar por prazo (FR-009); se ele é gravado ou só calculado no relatório
+  fica para a T030.
 - O legado (`Rehearsal`/`ResponseRecord` no Google Sheets) segue existindo enquanto o Strangler
   Fig (D2) não terminar; os dois não devem coexistir para o mesmo `BotAction` (ver contratos).

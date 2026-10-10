@@ -10,7 +10,7 @@ Evolution, um teste fake) deve satisfazer estas interfaces.
 ```java
 public interface RehearsalVotingUseCase {
     Ensaio criarEnsaio(String telefoneSolicitante, LocalDateTime dataHora, String local);
-    void registrarVoto(String ensaioId, String telefoneIntegrante, Voto.Escolha escolha);
+    void registrarVoto(String telefoneIntegrante, Voto.Escolha escolha, TipoEnsaio tipoInformado);
     Ensaio remarcar(String telefoneSolicitante, String ensaioId, LocalDateTime novaDataHora);
 }
 ```
@@ -18,6 +18,14 @@ public interface RehearsalVotingUseCase {
 - `criarEnsaio`/`remarcar` MUST rejeitar (lançar exceção de domínio, ex.
   `NaoAutorizadoException`) quando `telefoneSolicitante` não é líder (D3) — sem criar/alterar
   o `Ensaio`. Corresponde a FR-001, FR-013, FR-015.
+- `registrarVoto` (T022E) resolve o ensaio pelo integrante, sem receber `ensaioId`.
+  `tipoInformado` é o tipo que o integrante escreveu (ex.: "sim, vocal") ou `null` se não
+  disse; interpretar o texto é da camada de linguagem natural/`ActionDispatcher`, não do service.
+  - Integrante que não é convocado do tipo do ensaio (inclui a líder) é ignorado em silêncio:
+    não grava, não salva, não notifica (FR-020).
+  - Um único ensaio com votação aberta para o integrante → o voto vale para ele.
+  - Mais de um: só vale se `tipoInformado` bater com o tipo de um deles. Sem tipo, não grava e o
+    integrante é notificado pedindo para dizer o tipo (FR-021, FR-022).
 - `registrarVoto` com `escolha` não reconhecida (texto livre não mapeado para SIM/NAO) MUST
   ser um no-op do ponto de vista do domínio — a camada de interpretação de linguagem natural
   (Claude/`ActionDispatcher`) é quem decide não chamar esta porta, não o domínio quem valida

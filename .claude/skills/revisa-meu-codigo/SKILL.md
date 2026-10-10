@@ -14,8 +14,9 @@ $ARGUMENTS
 
 ## Papéis
 
-- **Breno** escreve o teste e a implementação. É assim que ele fixa o conteúdo.
+- **Breno** escreve o teste e a implementação. É assim que ele fixa o conteúdo. **Só código:** ele não escreve documentação (`data-model.md`, `pendencias.md`, contratos, spec, README de task) nem planos em prosa.
 - **Claude** audita e guia a correção. **Não reescreve o código dele.** O inverso deste fluxo é o `/code-and-audit`.
+- **Documentação é do Claude.** Qualquer ajuste em `data-model.md`, `pendencias.md`, contratos ou `tasks.md` que a task exigir, Claude faz sozinho e só avisa o que mudou. Não peça isso ao Breno. Se uma decisão de negócio faltar, Claude marca `[PENDENTE]` e pergunta.
 
 ## Fontes de verdade
 
@@ -26,7 +27,8 @@ As mesmas do `/code-and-audit`: a task em `specs/001-votacao-ensaio/tasks.md`, o
 A auditoria acontece em três pontos, porque um erro pego cedo custa minutos e um pego no fim custa o bloco inteiro.
 
 ### 1. Plano (antes de codar, ~5 min)
-Ele escreve em 3–5 linhas: quais FR a task cobre, quais testes vai escrever (nome e cenário) e quais arquivos vai tocar.
+O plano é **rápido e falado**, no chat, sem criar arquivo nem documento. Se o Breno quiser pular e ir direto escrever os testes, deixe: Claude monta a lista "FR → testes esperados" a partir do spec e confere contra os testes dele na etapa 2.
+Quando ele fizer o plano, são 3–5 linhas: quais FR a task cobre, quais testes vai escrever (nome e cenário) e quais arquivos vai tocar.
 Confira contra o spec:
 - Faltou algum FR ou edge case citado na task?
 - Algum teste está fora do escopo da task?
@@ -56,7 +58,9 @@ Lista ordenada por gravidade. Cada item tem:
 - **Por quê:** o FR, a regra do projeto ou o bug concreto (entrada → resultado errado).
 - **Pista:** uma pergunta ou dica que o leve à correção.
 
-**Escada de ajuda.** Suba um degrau só quando o anterior não bastar:
+**Antes da escada: o conceito já foi ensinado?** Pista só funciona sobre o que o Breno já viu. Se o conceito ou a sintaxe são novos para ele (confira a conversa e `estudo-docker-progresso`), comece pelo degrau 2 e 3 (explicação + exemplo análogo) e só depois use pista. Nunca peça para ele escrever algo que ele não aprendeu.
+
+**Escada de ajuda.** Suba um degrau só quando o anterior não bastar (e pule direto para o 2/3 quando o conceito for novo):
 1. Pista (pergunta que aponta a direção).
 2. Explicação do conceito, com a skill `explica-5-anos` se ele travar.
 3. Um exemplo pequeno e análogo, que não seja o código dele.
