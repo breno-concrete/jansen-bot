@@ -1,13 +1,17 @@
 package com.jansen.bot.service;
 
 import com.jansen.bot.client.EvolutionClient;
-import com.jansen.bot.model.BotAction;
 import com.jansen.bot.model.ClaudeAction;
 import com.jansen.bot.model.EvolutionWebhookPayload;
-import com.jansen.bot.repository.GoogleSheetsRepository;
+import com.jansen.bot.rehearsal.adapters.in.InterpretadorDeVoto;
+import com.jansen.bot.rehearsal.adapters.in.VotoInterpretado;
+import com.jansen.bot.rehearsal.application.RehearsalVotingService;
+import com.jansen.bot.rehearsal.ports.RehearsalRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 /**
  * Orquestra o fluxo completo: webhook → Gemini → ação → resposta WhatsApp.
@@ -20,16 +24,22 @@ public class WebhookService {
     private final GeminiService geminiService;
     private final ActionDispatcher actionDispatcher;
     private final EvolutionClient evolutionClient;
-    private final GoogleSheetsRepository repository;
+    private final InterpretadorDeVoto interpretadorDeVoto;
+    private final RehearsalVotingService votacao;
+    private final RehearsalRepositoryPort ensaios;
 
     public WebhookService(GeminiService geminiService,
                           ActionDispatcher actionDispatcher,
                           EvolutionClient evolutionClient,
-                          GoogleSheetsRepository repository) {
+                          InterpretadorDeVoto interpretadorDeVoto,
+                          RehearsalVotingService votacao,
+                          RehearsalRepositoryPort ensaios) {
         this.geminiService = geminiService;
         this.actionDispatcher = actionDispatcher;
         this.evolutionClient = evolutionClient;
-        this.repository = repository;
+        this.interpretadorDeVoto = interpretadorDeVoto;
+        this.votacao = votacao;
+        this.ensaios = ensaios;
     }
 
     /**
@@ -47,41 +57,33 @@ public class WebhookService {
 
         log.info("Mensagem recebida de {} ({}): {}", senderName, phone, message);
 
-        // 0. Atalho determinístico (Fast-path) para Sim/Não quando há ensaio agendado
-        ClaudeAction action = checkFastPresenceShortcut(message);
-        if (action == null) {
-            // 1. Envia para Gemini interpretar
-            action = geminiService.interpret(phone, message);
-        } else {
-            log.info("Atalho de presença detectado: {} para a mensagem '{}'", action.acao(), message);
+        // 0. Atalho sem IA (T024, P-031): com ensaio aberto, "sim"/"não" (+ tipo) é voto direto.
+        // O serviço já responde ao integrante (FR-005) ou o ignora em silêncio (FR-020).
+        Optional<VotoInterpretado> voto = ensaios.buscarComVotacaoAberta().isEmpty()
+                ? Optional.empty()
+                : interpretadorDeVoto.interpretar(message);
+        if (voto.isPresent()) {
+            log.info("Voto reconhecido sem IA: {} para a mensagem '{}'", voto.get(), message);
+            votacao.registrarVoto(phone, voto.get().escolha(), voto.get().tipo());
+            return;
         }
+
+        // 1. Envia para Gemini interpretar
+        ClaudeAction action = geminiService.interpret(phone, message);
 
         // 2. Executa a ação e obtém resposta
         String response = actionDispatcher.dispatch(phone, action);
 
-        // 3. Usa resposta da Gemini se o dispatcher não gerou uma específica
-        if (response == null || response.isBlank()) {
+        // 3. Usa resposta da Gemini se o dispatcher não gerou uma específica (null).
+        // Texto vazio = "não envie nada": o serviço de votação já respondeu (T024).
+        if (response == null) {
             response = action.resposta();
+        }
+        if (response == null || response.isBlank()) {
+            return;
         }
 
         // 4. Envia resposta via Evolution API
         evolutionClient.sendTextMessage(phone, response);
-    }
-
-    private ClaudeAction checkFastPresenceShortcut(String msg) {
-        if (msg == null || msg.isBlank()) return null;
-        boolean temEnsaioAgendado = repository.findNextScheduledRehearsal()
-                .filter(r -> "AGENDADO".equalsIgnoreCase(r.status()))
-                .isPresent();
-        if (!temEnsaioAgendado) return null;
-
-        String clean = msg.trim().toLowerCase();
-        if (clean.equals("sim") || clean.equals("s") || clean.equals("vou") || clean.equals("tô dentro") || clean.equals("to dentro") || clean.equals("confirmo")) {
-            return new ClaudeAction(BotAction.CONFIRMAR_PRESENCA, "Show! Te espero no ensaio 🎸", null);
-        }
-        if (clean.equals("não") || clean.equals("nao") || clean.equals("n") || clean.equals("não vou") || clean.equals("nao vou") || clean.equals("tô fora") || clean.equals("to fora") || clean.equals("não posso") || clean.equals("nao posso")) {
-            return new ClaudeAction(BotAction.NEGAR_PRESENCA, "Beleza, anotei que você não vai 👍", null);
-        }
-        return null;
     }
 }

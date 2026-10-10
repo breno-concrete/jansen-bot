@@ -6,6 +6,7 @@ import com.jansen.bot.exception.NaoAutorizadoException;
 import com.jansen.bot.model.*;
 import com.jansen.bot.rehearsal.application.RehearsalVotingService;
 import com.jansen.bot.rehearsal.domain.TipoEnsaio;
+import com.jansen.bot.rehearsal.domain.Voto;
 import com.jansen.bot.repository.GoogleSheetsRepository;
 import com.jansen.bot.util.PhoneUtils;
 import org.slf4j.Logger;
@@ -73,14 +74,8 @@ public class ActionDispatcher {
                 handleVote(memberPhone, dados);
                 yield fallback(action.resposta(), "Anotado seu voto! 👍");
             }
-            case BotAction.CONFIRMAR_PRESENCA -> {
-                handlePresence(memberPhone, dados, true);
-                yield fallback(action.resposta(), "Show! Te espero no ensaio 🎸");
-            }
-            case BotAction.NEGAR_PRESENCA -> {
-                handlePresence(memberPhone, dados, false);
-                yield fallback(action.resposta(), "Beleza, anotei que você não vai 👍");
-            }
+            case BotAction.CONFIRMAR_PRESENCA -> handleVotoDePresenca(memberPhone, dados, Voto.Escolha.SIM);
+            case BotAction.NEGAR_PRESENCA -> handleVotoDePresenca(memberPhone, dados, Voto.Escolha.NAO);
             case BotAction.STATUS_PRESENCA -> handlePresenceStatus(dados);
             case BotAction.CONCLUIR_ENSAIO -> handleCompleteRehearsal(memberPhone, dados);
             case BotAction.CONTAR_ENSAIOS -> rehearsalCounterService.formatCountMessage();
@@ -133,13 +128,19 @@ public class ActionDispatcher {
 
     /** P-034: sem tipo (ou tipo desconhecido) o ensaio é geral. */
     private TipoEnsaio tipoDe(String tipoEnsaio) {
+        TipoEnsaio tipo = tipoOuNulo(tipoEnsaio);
+        return tipo != null ? tipo : TipoEnsaio.GERAL;
+    }
+
+    /** Tipo dito pela IA, ou null se vazio/desconhecido (no voto, "sem tipo" é diferente de "geral"). */
+    private TipoEnsaio tipoOuNulo(String tipoEnsaio) {
         if (tipoEnsaio == null) {
-            return TipoEnsaio.GERAL;
+            return null;
         }
         return Arrays.stream(TipoEnsaio.values())
                 .filter(t -> t.name().equalsIgnoreCase(tipoEnsaio.trim()))
                 .findFirst()
-                .orElse(TipoEnsaio.GERAL);
+                .orElse(null);
     }
 
     private String handleShowRegistration(String memberPhone, ClaudeAction.ActionData dados) {
@@ -222,16 +223,13 @@ public class ActionDispatcher {
         });
     }
 
-    private void handlePresence(String memberPhone, ClaudeAction.ActionData dados, boolean confirmado) {
-        var opt = repository.findAllRehearsals().stream()
-                .filter(r -> "AGENDADO".equalsIgnoreCase(r.status()))
-                .findFirst();
-        if (opt.isPresent()) {
-            log.info("Registrando presença: {} -> {} no ensaio {}", memberPhone, confirmado ? "SIM" : "NAO", opt.get().id());
-            rehearsalService.registerPresence(opt.get().id(), memberPhone, confirmado);
-        } else {
-            log.warn("Nenhum ensaio AGENDADO encontrado para registrar presença de {}", memberPhone);
-        }
+    /**
+     * T024: registra o voto pelo serviço novo (FR-022). Devolve vazio de propósito: o serviço já responde ao
+     * integrante (FR-005) ou o ignora em silêncio (FR-020), então o WebhookService não envia mais nada.
+     */
+    private String handleVotoDePresenca(String memberPhone, ClaudeAction.ActionData dados, Voto.Escolha escolha) {
+        votacao.registrarVoto(memberPhone, escolha, dados != null ? tipoOuNulo(dados.tipoEnsaio()) : null);
+        return "";
     }
 
     private String handlePresenceStatus(ClaudeAction.ActionData dados) {
