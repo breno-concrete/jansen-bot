@@ -205,13 +205,13 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       vocabulário aceito (só "sim"/"não", ou também "vou", "confirmo", "não posso"…) e se o
       parser só liga quando o integrante tem ensaio pendente; perguntar ao Breno antes de codar
       (depende de T022E; não depende de T022F)
-- [ ] T023 [US1] Migrar `ActionDispatcher.handleScheduleRehearsal` (`BotAction.AGENDAR_ENSAIO`)
+- [x] T023 [US1] Migrar `ActionDispatcher.handleScheduleRehearsal` (`BotAction.AGENDAR_ENSAIO`)
       para chamar `RehearsalVotingService.criarEnsaio` (com o tipo, T022F) em vez de
       `RehearsalService.createScheduledRehearsal`; o filtro de destinatários por tipo passa a
       viver no service/adapter (T022C/T022D) e sai do dispatcher — **este é o primeiro corte do Strangler
       Fig** (research.md D2) — em `src/main/java/com/jansen/bot/service/ActionDispatcher.java`
       (depende de T022C, T022D, T022F; rodar T001+T020 de novo logo depois)
-- [ ] T023A [US1] **Bloqueia ir para produção.** Contexto da IA lendo os ensaios novos
+- [x] T023A [US1] **Bloqueia ir para produção.** Contexto da IA lendo os ensaios novos
       (teste primeiro): `ContextService.buildContext` monta `BandContext` só do Sheets legado
       (`findAllRehearsals`, `findNextScheduledRehearsal`, `findResponsesByRehearsal`). Depois da
       T023 o ensaio novo mora no Postgres e a IA não o vê: o `system-prompt.txt` só aciona
