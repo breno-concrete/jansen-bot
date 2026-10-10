@@ -18,6 +18,12 @@ $ARGUMENTS
 - **Breno** audita. Ele revisa, questiona e aprova; não escreve a parte lógica.
 - Este fluxo substitui o modo "ensinar → Breno escreve → corrigir" para as tasks de `tasks.md`.
 
+## Estilo de resposta (pedido do Breno, vale para todo o chat)
+
+- **Curto e em fluxo ordenado:** conclusão primeiro, depois só o necessário em passos numerados ou tabela curta. Ele se perde em textão.
+- **Direto, sem perder a riqueza:** menos palavras, mesma profundidade. Nada de repetir o que já foi dito.
+- **Uma pergunta por vez.** Docs (spec, pendências, tasks, contratos) o Claude escreve, mas o Breno aprova antes de gravar: mostrar o texto e esperar o ok.
+
 ## Fontes de verdade (ler ANTES de escrever qualquer linha)
 
 Para a task escolhida, leia só o que ela referencia, mas sempre:

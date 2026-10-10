@@ -183,22 +183,54 @@ verificar que cada integrante recebe o pedido, e que cada resposta sim/não gera
       o bot pede que ele diga o tipo (FR-021, FR-022). Atualizar o contrato
       `rehearsal-ports.md` (assinatura de `registrarVoto`) antes de codar; qualquer dúvida de
       assinatura vira pergunta ao Breno (depende de T022C, T022D; retrabalha T019/T022)
-- [ ] T022F [P] [US1] Ensinar a IA a extrair o tipo do ensaio (pedido da líder e resposta do
+- [x] T022F [P] [US1] Ensinar a IA a extrair o tipo do ensaio (pedido da líder e resposta do
       integrante, ex. "sim, vocal"): novo campo em `ClaudeAction.ActionData` e atualização de
       `src/main/resources/system-prompt.txt` no mesmo formato de `AGENDAR_ENSAIO`/
       `CONFIRMAR_PRESENCA` (FR-019, FR-022). O legado já deduz o tipo pelo texto da resposta
-      da IA; esta task só formaliza o campo. Dúvida sobre o nome do campo/JSON → perguntar
+      da IA; esta task só formaliza o campo. **Decidido (Breno, 2026-10-10):** campo JSON
+      `tipo_ensaio` (`vocal`, `instrumental`, `geral` ou vazio), `String` em `ActionData`
+      (`tipoEnsaio`), sem converter para `TipoEnsaio`: a conversão fica no dispatcher (T023).
+      Teste em `src/test/java/com/jansen/bot/model/ClaudeActionTest.java`: JSON com o campo
+      preenche `dados().tipoEnsaio()`; JSON sem o campo deixa `null`
+- [ ] T022G [P] [US1] Parser de voto, sem IA (teste primeiro): classe pura
+      `InterpretadorDeVoto` na camada de interpretação (`src/main/java/com/jansen/bot/rehearsal/
+      adapters/in/`, antes do `ActionDispatcher`; **não** dentro do `RehearsalVotingService`, que
+      só recebe `Voto.Escolha` e `TipoEnsaio`, ver `rehearsal-ports.md`). Recebe o texto e devolve
+      `Optional<VotoInterpretado(Escolha, TipoEnsaio|null)>`. **Estrito**: só reconhece a
+      mensagem *inteira* sendo um voto (palavra de sim/não, mais um tipo opcional, ex. "sim,
+      vocal"); qualquer dúvida devolve vazio e a mensagem segue para a IA. O erro admitido é o
+      falso "não reconheci", nunca o falso voto (FR-004, FR-022). Casos mínimos: "sim", "Não",
+      "sim, vocal", "SIM VOCAL", "não vou" (reconhecidos); "sim, mas chego atrasado", "não sei",
+      "sim?", texto vazio, "quando é o ensaio?" (não reconhecidos). **[PENDENTE: P-031]**
+      vocabulário aceito (só "sim"/"não", ou também "vou", "confirmo", "não posso"…) e se o
+      parser só liga quando o integrante tem ensaio pendente; perguntar ao Breno antes de codar
+      (depende de T022E; não depende de T022F)
 - [ ] T023 [US1] Migrar `ActionDispatcher.handleScheduleRehearsal` (`BotAction.AGENDAR_ENSAIO`)
       para chamar `RehearsalVotingService.criarEnsaio` (com o tipo, T022F) em vez de
       `RehearsalService.createScheduledRehearsal`; o filtro de destinatários por tipo passa a
       viver no service/adapter (T022C/T022D) e sai do dispatcher — **este é o primeiro corte do Strangler
       Fig** (research.md D2) — em `src/main/java/com/jansen/bot/service/ActionDispatcher.java`
       (depende de T022C, T022D, T022F; rodar T001+T020 de novo logo depois)
+- [ ] T023A [US1] **Bloqueia ir para produção.** Contexto da IA lendo os ensaios novos
+      (teste primeiro): `ContextService.buildContext` monta `BandContext` só do Sheets legado
+      (`findAllRehearsals`, `findNextScheduledRehearsal`, `findResponsesByRehearsal`). Depois da
+      T023 o ensaio novo mora no Postgres e a IA não o vê: o `system-prompt.txt` só aciona
+      `CONFIRMAR_PRESENCA` quando há ensaio AGENDADO no contexto, então o "sim" cairia em
+      `RESPONDER`, e "quando é o próximo ensaio?" responderia "Nenhum ensaio agendado". Incluir
+      no contexto os ensaios com votação aberta (via `RehearsalRepositoryPort.
+      buscarComVotacaoAberta`) com tipo, data, hora, local e os pendentes do integrante que
+      perguntou; sem reintroduzir leitura direta do Postgres no `ContextService`. **[PENDENTE:
+      P-032]** formato desses ensaios no `BandContext` (campo novo ou reaproveitar
+      `proximoEnsaioResumo`/`ensaios`) e o que fazer enquanto coexistirem ensaios legados e
+      novos (Strangler Fig, research.md D2); perguntar ao Breno antes de codar (depende de
+      T023; precisa estar pronta antes da T024 ser validada na T025)
 - [ ] T024 [US1] Migrar os cases `BotAction.CONFIRMAR_PRESENCA` e `BotAction.NEGAR_PRESENCA`
       em `ActionDispatcher.dispatch` para chamar `RehearsalVotingService.registrarVoto` em
       vez de `RehearsalService.registerPresence`, no mesmo arquivo de T023; a resolução do
       ensaio (um pendente / tipo no texto / ignorar fora do escopo, FR-020 a FR-022) fica no
-      service (depende de T022E, T023)
+      service. Ligar também o `InterpretadorDeVoto` (T022G) antes da chamada à IA no fluxo de
+      mensagens (`WebhookService`): se reconhecer o voto, chama `registrarVoto` direto; se não,
+      segue para `GeminiService.interpret` (depende de T022E, T022G, T023, T023A)
 - [ ] T025 [US1] Rodar `./mvnw test` completo (baseline + T017-T019) e validar manualmente os
       passos 1-3 do `quickstart.md` § 4
 

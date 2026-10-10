@@ -34,6 +34,7 @@ public record ClaudeAction(
             @JsonProperty("musica_link") String musicaLink,
             @JsonProperty("musica_descricao") String musicaDescricao,
             @JsonProperty("suggestion_id") String suggestionId,
-            @JsonProperty("musica_nome") String musicaNome
+            @JsonProperty("musica_nome") String musicaNome,
+            @JsonProperty("tipo_ensaio") String tipoEnsaio
     ) {}
 }

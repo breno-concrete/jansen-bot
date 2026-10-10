@@ -16,7 +16,13 @@ $ARGUMENTS
 
 - **Breno** escreve o teste e a implementação. É assim que ele fixa o conteúdo. **Só código:** ele não escreve documentação (`data-model.md`, `pendencias.md`, contratos, spec, README de task) nem planos em prosa.
 - **Claude** audita e guia a correção. **Não reescreve o código dele.** O inverso deste fluxo é o `/code-and-audit`.
-- **Documentação é do Claude.** Qualquer ajuste em `data-model.md`, `pendencias.md`, contratos ou `tasks.md` que a task exigir, Claude faz sozinho e só avisa o que mudou. Não peça isso ao Breno. Se uma decisão de negócio faltar, Claude marca `[PENDENTE]` e pergunta.
+- **Documentação é do Claude.** Qualquer ajuste em `data-model.md`, `pendencias.md`, contratos ou `tasks.md` que a task exigir, Claude redige, mostra o texto e só grava depois do ok do Breno (ele não escreve docs). Se uma decisão de negócio faltar, Claude marca `[PENDENTE]` e pergunta.
+
+## Estilo de resposta (pedido do Breno, vale para todo o chat)
+
+- **Curto e em fluxo ordenado:** conclusão primeiro, depois só o necessário em passos numerados ou tabela curta. Ele se perde em textão.
+- **Direto, sem perder a riqueza:** menos palavras, mesma profundidade. Nada de repetir o que já foi dito.
+- **Uma pergunta por vez.** Docs (spec, pendências, tasks, contratos) o Claude escreve, mas o Breno aprova antes de gravar: mostrar o texto e esperar o ok.
 
 ## Fontes de verdade
 
