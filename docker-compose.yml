@@ -10,8 +10,9 @@ services:
       BOT_DB_USER: ${BOT_DB_USER}
       BOT_DB_PASSWORD: ${BOT_DB_PASSWORD}
 
-
-
+    depends_on:
+        postgres-bot:
+            condition: service_healthy
 
   postgres-bot:
     image: postgres:16-alpine
@@ -21,6 +22,11 @@ services:
       POSTGRES_USER: ${BOT_DB_USER}
       POSTGRES_PASSWORD: ${BOT_DB_PASSWORD}
       POSTGRES_DB: ${BOT_DB_DB}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${BOT_DB_USER}", "-d", "${BOT_DB_DB}"]
+      interval: 10s # de em quanto em quanto tempo o teste roda
+      timeout: 5s # quanto tempo espera
+      retries: 5 #quantas tentativas
 
     volumes:
       - postgres-bot-data:/var/lib/postgresql/data
